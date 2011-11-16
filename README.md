@@ -14,7 +14,7 @@ To get started:
 </pre>
 * Clone this repo:
 <pre>
- > git clone http://
+ > git clone https://github.com/cyrush/visit_pyopencl_exprs.git
 </pre>
 * Install necessary support python modules into VisIt
 <pre>
