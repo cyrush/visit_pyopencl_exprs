@@ -129,6 +129,7 @@ def setup_numpy():
     if os.path.isdir("numpy"):
         print "[removing existing source dir: `numpy']"
         shutil.rmtree("numpy")
+    print "[cloning `numpy' github repo (https://github.com/numpy/numpy.git)]"
     sexe('git clone https://github.com/numpy/numpy.git')
     patch_python_setup_file(pjoin("numpy","setup.py"),seed="import subprocess\n")
     print "[building + installing: `numpy']"
@@ -148,7 +149,7 @@ def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False):
     pypi_dir  = "%s-%s" % (pkg_name,pkg_ver)
     if os.path.exists(pypi_file):
         print "[skipping download of source package: `%s' already exists]" % pypi_file
-    print "[downlading package source from `%s']" % pypi_url
+    print "[downloading package source from `%s']" % pypi_url
     urllib.urlretrieve(pypi_url,pypi_file)
     if os.path.isdir(pypi_dir):
         print "[removing existing source dir: `%s']" % pypi_dir
