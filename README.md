@@ -5,23 +5,35 @@ This repo will be used to develop support for OpenCL based VisIt expressions.
 For initial exploration and prototyping, we will bootstrap OpenCL into VisIt
 via pyopencl and VisIt's Python Expression capability.
 
-To get started:
+Getting Started
+---------------
 
-* Install VisIt 2.4.0 or setup a development build of the VisIt trunk.
-* Add `visit' to your path (bash example):
+1. Install VisIt 2.4.0 or setup a development build of the VisIt trunk.  
+[VisIt 2.4.0 Release Binaries](http://portal.nersc.gov/svn/visit/trunk/releases/2.4.0/)  
+[VisIt 2.4.0 OSX 64-bit Bundle](http://portal.nersc.gov/svn/visit/trunk/releases/2.4.0/VisIt-2.4.0-x86_64-installer.dmg)  
+2. Add `visit' to your path (bash examples):
+
+
+_Standard VisIt Install:_
 <pre>
  > export PATH=$PATH:/path/to/visit/bin
 </pre>
-* Clone this repo:
+_OSX Bundle Install:_  
+<pre>
+ > export PATH=$PATH:/path/to/VisIt.app/Contents/MacOS/
+</pre>
+
+3. Clone this repo:
 <pre>
  > git clone https://github.com/cyrush/visit_pyopencl_exprs.git
 </pre>
-* Install necessary support python modules into VisIt
+4. Install necessary support python modules into VisIt
 <pre>
  > visit -nowin -cli -s install_visit_pyopencl_support.py
 </pre>
-* Run the module tests
+5. Run the module tests
 <pre>
  > visit -nowin -cli -s setup.py test
 </pre>
  
+
