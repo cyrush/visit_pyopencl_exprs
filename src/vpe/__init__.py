@@ -7,11 +7,8 @@
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 10/14/2010
  description:
-    Init for 'flow'.
+    Init for 'flow.vpe'.
 
 """
 
-import core
-import filters
-import interactive
-import vpe
+from visit_flow_expr import *

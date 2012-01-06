@@ -1,9 +1,15 @@
+#!/usr/bin/env python
 #
-# file: setup_tests.py
-# author: Cyrus Harrison <cyrush@llnl.gov>
+# ${disclaimer}
 #
-# Helper that creates a tarball of a git repo.
-#
+"""
+ file: package.py
+ author: Cyrus Harrison <cyrush@llnl.gov>
+ description:
+  Helper that creates a tarball of a git repo.
+
+"""
+
 
 import subprocess
 import sys

@@ -1,15 +1,17 @@
-#
 # [VisIt Python Script]
 #
-# file: install_visit_pyopencl_support.py
-# author: Cyrus Harrison <cyrush@llnl.gov>
+# ${disclaimer}
 #
-# Installs pyopencl and all supporting modules (including numpy) into
-# a VisIt install.
-#
-# usage:
-# >visit -nowin -cli -s install_visit_pyopencl_support.py
-#
+"""
+ file: install_visit_pyopencl_support.py
+ author: Cyrus Harrison <cyrush@llnl.gov>
+ description:
+  Installs pyopencl and all supporting modules (including numpy) into
+  a VisIt install.
+
+ usage:
+ >visit -nowin -cli -s install_visit_pyopencl_support.py
+"""
 
 import os
 import sys

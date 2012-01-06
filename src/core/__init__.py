@@ -7,11 +7,11 @@
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 10/14/2010
  description:
-    Init for 'flow'.
+    Init for flow.core.
 
 """
 
-import core
-import filters
-import interactive
-import vpe
+from registry import *
+from property_tree import *
+from filter_graph import *
+from workspace import *

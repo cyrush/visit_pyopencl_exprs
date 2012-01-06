@@ -7,11 +7,9 @@
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 10/14/2010
  description:
-    Init for 'flow'.
+    Init for 'flow.filters'.
 
 """
 
-import core
-import filters
-import interactive
-import vpe
+import npy_ops
+import npy_compile

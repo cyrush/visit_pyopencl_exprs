@@ -1,13 +1,16 @@
+#!/usr/bin/env python
 #
-# [VisIt Python Expression]
+# ${disclaimer}
 #
-# file: test_pyopencl_smoke_expr.py
-# author: Cyrus Harrison <cyrush@llnl.gov>
-#
-# A smoke test which checks that everything is in place 
-# to use pyopencl within a VisIt python expression.
-#
-#
+"""
+ file: test_pyopencl_smoke_expr.py
+ author: Cyrus Harrison <cyrush@llnl.gov>
+ created: 12/09/2011
+ description:
+   A smoke test which checks that everything is in place 
+   to use pyopencl within a VisIt python expression.
+
+"""
 
 import unittest
 import visit

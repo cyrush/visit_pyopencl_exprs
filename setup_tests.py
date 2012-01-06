@@ -1,25 +1,30 @@
+#!/usr/bin/env python
 #
-# file: setup_tests.py
-# author: Cyrus Harrison <cyrush@llnl.gov>
+# ${disclaimer}
 #
-# Provides 'ExecuteTests' a distutils command class that automatically
-# collects and launches unittest test cases from scripts in the 'tests'
-# subdir.
-#
-# I created this simple one file module b/c nose & setuptools are not always
-# available/installable on all of the systems I develop python modules on.
-#
-# To use this class in a distutils setup project:
-#  A) Create test scripts in the subdir 'tests'
-#  B) In your setup.py:
-#     #import the test module
-#     import setup_tests
-#     # Add the custom command to the 'cmdclass' dictonary in your setup call:
-#     setup( ...
-#            cmdclass = { 'test': setup_tests.ExecuteTests})
-#
-#  C) Invoke 'python setup.py test' to run tests
-#
+"""
+  file: setup_tests.py
+  author: Cyrus Harrison <cyrush@llnl.gov>
+
+  Provides 'ExecuteTests' a distutils command class that automatically
+  collects and launches unittest test cases from scripts in the 'tests'
+  subdir.
+
+  I created this simple one file module b/c nose & setuptools are not always
+  available/installable on all of the systems I develop python modules on.
+
+  To use this class in a distutils setup project:
+   A) Create test scripts in the subdir 'tests'
+   B) In your setup.py:
+      #import the test module
+      import setup_tests
+      # Add the custom command to the 'cmdclass' dictonary in your setup call:
+      setup( ...
+             cmdclass = { 'test': setup_tests.ExecuteTests})
+  
+   C) Invoke 'python setup.py test' to run tests
+
+"""
 
 from distutils.core import Command
 from unittest import TextTestRunner, TestLoader
