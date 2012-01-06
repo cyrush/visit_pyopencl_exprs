@@ -33,7 +33,16 @@ _OSX Bundle Install:_
 </pre>
 5. Run the module tests
 <pre>
- > visit -nowin -cli -s setup.py test
+ > ./run_tests.sh
 </pre>
+
+6. Run the example flow workspaces
+<pre>
+ > ./run_flow_workspace.sh d p examples/flow.setup.example.1.py
+</pre>
+<pre>
+ > ./run_flow_workspace.sh d p examples/flow.setup.example.2.py
+</pre>
+
  
 
