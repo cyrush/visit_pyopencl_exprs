@@ -61,6 +61,14 @@ class FilterNode(object):
     def __str__(self):
         return "%s(%s)" % (self.name, self.ftype.name)
 
+class RegistrySourceNode(object):
+    def __init__(self,name):
+        self.name = name
+        self.produces_output = True
+        self.number_of_ports = 0
+    def __str__(self):
+        return "%s(RegistrySource)" % self.name
+
 class FilterConnection(object):
     def __init__(self,src_node,des_node,port_name):
         self.src  = src_node
@@ -76,13 +84,21 @@ class FilterGraph(object):
         self.node_count = -1
     def register_filter(self,filter_type):
         self.types[filter_type.name] = filter_type
+    def registry_sources(self):
+        res = []
+        for e in self.edges_in.values():
+            for v in e.values():
+                if v.src.name[0] == ":":
+                    res.append(v.src.name)
+        res = [ v[1:] for v in set(res)]
+        return res
     def connect(self,src_name,des_name,port_name):
         # special case for direct access to registry
         reg_src = (src_name[0] == ":")
-        if not reg_src:
-            src_node = self.nodes[src_name]
+        if reg_src:
+            src_node =  RegistrySourceNode(src_name)
         else:
-            src_node = src_name
+            src_node = self.nodes[src_name]        
         des_node = self.nodes[des_name]
         if not port_name in des_node.ports:
             raise InvalidPortError(port_name)

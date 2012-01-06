@@ -23,28 +23,6 @@ import os.path
 import imp
 import traceback
 
-def load_workspace(fname):
-    # NOTE: for parallel we will want to remove this print statement:
-    print "[loading workingspace from: %s]" % os.path.abspath(fname)
-    res = None
-    try:
-        try:
-            fin = open(fname, 'rb')
-            res = imp.load_source(hashlib.md5(fname).hexdigest(), fname, fin)
-        finally:
-            try: fin.close()
-            except: pass
-    except ImportError, x:
-        traceback.print_exc(file = sys.stderr)
-        raise
-    except:
-        traceback.print_exc(file = sys.stderr)
-        raise
-    if not res is None:
-        w = Workspace()
-        # exec file
-        res.setup_workspace(w)
-        return w;
 
 class FlowExecExpr(SimplePythonExpression):
     def __init__(self):
@@ -54,7 +32,11 @@ class FlowExecExpr(SimplePythonExpression):
         self.output_dimension = 1
     def derive_variable(self,ds_in,domain_id):
         # get workspace
-        w = load_workspace(self.arguments[0])
+        wstype = self.arguments[0]
+        if wstype == "src":
+            w = Workspace.load_workspace_script(src=self.arguments[1])
+        else:
+            w = Workspace.load_workspace_script(filename=self.arguments[1])
         # construct output array
         ncells = ds_in.GetNumberOfCells()
         res = vtk.vtkFloatArray()

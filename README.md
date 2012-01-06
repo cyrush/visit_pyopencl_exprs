@@ -38,10 +38,10 @@ _OSX Bundle Install:_
 
 6. Run the example flow workspaces
 <pre>
- > ./run_flow_workspace.sh d p examples/flow.setup.example.1.py
+ > ./run_flow_workspace.sh examples/flow.setup.example.1.py
 </pre>
 <pre>
- > ./run_flow_workspace.sh d p examples/flow.setup.example.2.py
+ > ./run_flow_workspace.sh examples/flow.setup.example.2.py
 </pre>
 
  

@@ -19,10 +19,9 @@ from flow import vpe
 
 def main():
     args = Argv()
-    wfile = args[-1]
-    vars  = args[:-1]
+    wfile = args[0]
     visit.OpenDatabase(pjoin("tests","data","rect2d.silo"))
-    vpe.define_flow_expr("flow",vars,wfile)
+    vpe.define_flow_expr("flow",file=wfile)
     visit.AddPlot("Pseudocolor","flow")
     visit.DrawPlots()
 

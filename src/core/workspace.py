@@ -11,11 +11,25 @@
 
 """
 
-import logging
-
+import sys
+import os
+import imp
+import hashlib
 from registry import *
 from filter_graph import *
 
+def define_module(module_name,module_script,parent_dict=None):
+    if module_name in sys.modules:
+        module = sys.modules[module_name]
+    else:
+        module = imp.new_module(module_name)
+        sys.modules[module_name] = module
+        module.__file__ = "<%s>" % module_name
+        module.__loader = None
+    exec(module_script,module.__dict__,module.__dict__)
+    if not parent_dict is None:
+        parent_dict[module_name] = __input__(module_name)
+    return module
 
 class Workspace(object):
     def __init__(self):
@@ -40,6 +54,10 @@ class Workspace(object):
         return self.r.fetch_entry(node_name)
     def registry_clear(self):
         return self.r.clear()
+    def registry_keys(self):
+        return self.r.keys()
+    def registry_sources(self):
+        return self.g.registry_sources()
     def execute(self):
         plan = ExecutionPlan(self.g)
         print "[Workspace Execute]\n%s" % str(plan)
@@ -68,6 +86,16 @@ class Workspace(object):
                     rval = res
                 print "[Workspace Registry Result]\n%s" % str(self.r)
         return rval
+    @classmethod
+    def load_workspace_script(cls,src=None,file=None):
+        if src is None and not filename is None:
+            print "[loading workingspace from: %s]" % os.path.abspath(file)
+            src = open(file).read()
+        module_name = hashlib.md5(src).hexdigest()
+        res = define_module(module_name,src)
+        # setup the workspace
+        w = res.setup_workspace()
+        return w;
 
 class ExecutionPlan(object):
     def __init__(self,g):
@@ -96,7 +124,8 @@ class ExecutionPlan(object):
                     if node.number_of_ports > 0:
                         for port,conn in g.edges_in[node_name].items():
                             if not conn is None:
-                                if not isinstance(conn.src,str):
+                                # keep reg sources out of the queue
+                                if conn.src.name[0] != ":":
                                     src_name = conn.src.name
                                     q.put(src_name)
                             else:

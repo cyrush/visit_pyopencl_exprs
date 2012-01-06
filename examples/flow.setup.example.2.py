@@ -11,9 +11,11 @@
 
 """
 
+from flow.core import *
 from flow.filters import npy_ops
 
-def setup_workspace(w):
+def setup_workspace():
+    w = Workspace()
     w.register_filters(npy_ops)
     w.add("add","f1")
     w.add("sub","f2")
@@ -38,3 +40,4 @@ def setup_workspace(w):
     # f5 = f4 + f3
     w.connect("f3","f5:a")
     w.connect("f4","f5:b")
+    return w

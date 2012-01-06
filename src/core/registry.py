@@ -54,6 +54,10 @@ class Registry(object):
         raise InvalidRegistryKey(key)
     def clear(self):
         self.entries = {}
+    def keys(self):
+        res = self.entries.keys()
+        res.sort()
+        return res
     def __str__(self):
         ekeys = self.entries.keys()
         ekeys.sort()

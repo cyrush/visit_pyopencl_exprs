@@ -29,7 +29,7 @@ class TestFlowVPE(unittest.TestCase):
         self.data_path = pjoin("tests","data","rect2d.silo")
         visit.OpenDatabase(self.data_path)
     def test_flow_expr_ex1(self):
-        vpe.define_flow_expr("flow",["d","p"],"examples/flow.setup.example.1.py")
+        vpe.define_flow_expr("flow",file="examples/flow.setup.example.1.py")
         visit.AddPlot("Pseudocolor","flow")
         # the flow kernel should calc d+p
         # define another expression to check the actual result.
@@ -37,11 +37,12 @@ class TestFlowVPE(unittest.TestCase):
         visit.AddPlot("Pseudocolor","check")
         visit.DrawPlots()
         # the total sum of all scalar vals of 'check' should equal zero.
-        visit.Query("Variable Sum")
-        res = visit.GetQueryOutputValue()
+        res = 1e8
+        if visit.Query("Variable Sum"):
+            res = visit.GetQueryOutputValue()
         self.assertTrue(res < 1.0e-8)
     def test_flow_expr_ex2(self):
-        vpe.define_flow_expr("flow",["d","p"],"examples/flow.setup.example.2.py")
+        vpe.define_flow_expr("flow",file="examples/flow.setup.example.2.py")
         visit.AddPlot("Pseudocolor","flow")
         # the flow kernel should calc d+p
         # define another expression to check the actual result.
@@ -49,8 +50,9 @@ class TestFlowVPE(unittest.TestCase):
         visit.AddPlot("Pseudocolor","check")
         visit.DrawPlots()
         # the total sum of all scalar vals of 'check' should equal zero.
-        visit.Query("Variable Sum")
-        res = visit.GetQueryOutputValue()
+        res = 1e8
+        if visit.Query("Variable Sum"):
+            res = visit.GetQueryOutputValue()
         self.assertTrue(res < 1.0e-8)
     def tearDown(self):
         # clean up
