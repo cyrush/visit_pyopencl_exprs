@@ -10,7 +10,7 @@
   a VisIt install.
 
  usage:
- >visit -nowin -cli -s install_visit_pyopencl_support.py
+ >visit -nowin -cli -s install_visit_pyopencl_support.py <destination-dir>
 """
 
 import os
@@ -120,7 +120,7 @@ def prepare_build_dir():
         print "[using build directory: %s]" % wpath
         os.chdir(wpath)
 
-def setup_numpy():
+def setup_numpy(dest_dir=None):
     """ Builds and installs numpy."""
     if check_for_existing_module("numpy"):
         print "[skipping build: `numpy' is already installed]"
@@ -135,9 +135,12 @@ def setup_numpy():
     sexe('git clone https://github.com/numpy/numpy.git')
     patch_python_setup_file(pjoin("numpy","setup.py"),seed="import subprocess\n")
     print "[building + installing: `numpy']"
-    sexe("cd numpy; visit -nowin -cli -s setup.py install")
+    cmd ="cd numpy; visit -nowin -cli -s setup.py install"
+    if not dest_dir is None:
+        cmd += " --prefix %s" % dest_dir
+    sexe(cmd)
 
-def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False):
+def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False,dest_dir=None):
     """ Builds and installs a package from pypi."""
     if not force:
         if  check_for_existing_module(pkg_name,pkg_ver):
@@ -151,8 +154,9 @@ def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False):
     pypi_dir  = "%s-%s" % (pkg_name,pkg_ver)
     if os.path.exists(pypi_file):
         print "[skipping download of source package: `%s' already exists]" % pypi_file
-    print "[downloading package source from `%s']" % pypi_url
-    urllib.urlretrieve(pypi_url,pypi_file)
+    else:
+        print "[downloading package source from `%s']" % pypi_url
+        urllib.urlretrieve(pypi_url,pypi_file)
     if os.path.isdir(pypi_dir):
         print "[removing existing source dir: `%s']" % pypi_dir
         shutil.rmtree(pypi_dir)
@@ -163,22 +167,29 @@ def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False):
         zipfile.ZipFile(pypi_file,"r").extractall()    
     patch_python_setup_file(pjoin(pypi_dir,"setup.py"))
     print "[building + installing: `%s']" % pkg_name
-    sexe("cd %s; visit -nowin -cli -s setup.py install" % pypi_dir)
+    cmd = "cd %s; visit -nowin -cli -s setup.py install" % pypi_dir 
+    if not dest_dir is None:
+        cmd += " --prefix %s" % dest_dir
+    sexe(cmd)
 
 def setup_all():
     """ Builds and installs all packages, as necessary."""
+    dest = None
+    if len(Argv()) > 0:
+        dest = os.path.abspath(Argv()[0])
+        print "[installing modules to: %s]" % dest
     # distribute is strange, it masquerades as setuptools so
     # we need a special detection method.
     if not check_for_distribute_module("0.6"):
-        setup_pypi_package("distribute","0.6.24",force=True)
+        setup_pypi_package("distribute","0.6.24",force=True,dest_dir=dest)
     else:
         print "[skipping build: 'distribute' is already installed]"
-    setup_numpy();
-    setup_pypi_package("py","1.4.5","zip")
-    setup_pypi_package("pytest","2.1.3","zip")
-    setup_pypi_package("pytools","2011.4")
-    setup_pypi_package("decorator","3.3.2")
-    setup_pypi_package("pyopencl","2011.1.2")
+    setup_numpy(dest);
+    setup_pypi_package("py","1.4.5","zip",dest_dir=dest)
+    setup_pypi_package("pytest","2.1.3","zip",dest_dir=dest)
+    setup_pypi_package("pytools","2011.4",dest_dir=dest)
+    setup_pypi_package("decorator","3.3.2",dest_dir=dest)
+    setup_pypi_package("pyopencl","2011.1.2",dest_dir=dest)
 
 if __visit_script_file__ == __visit_source_file__:
     try:
