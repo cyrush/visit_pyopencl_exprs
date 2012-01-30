@@ -120,6 +120,21 @@ def prepare_build_dir():
         print "[using build directory: %s]" % wpath
         os.chdir(wpath)
 
+def prepare_module_dest_dir(dest):
+    """
+    Setup proper directory structure to install python modules.
+    """
+    ddirs = [ ]
+    ddirs.append(dest)
+    ddirs.append(pjoin(ddirs[-1],"lib"))
+    ddirs.append(pjoin(ddirs[-1],"python2.6"))
+    ddirs.append(pjoin(ddirs[-1],"site-packages"))
+    print ddirs
+    for d in ddirs:
+        if not os.path.isdir(d):
+            print "[creating directory: %s]" % d
+            os.mkdir(d)
+
 def setup_numpy(dest_dir=None):
     """ Builds and installs numpy."""
     if check_for_existing_module("numpy"):
@@ -178,6 +193,7 @@ def setup_all():
     dest = None
     if len(Argv()) > 0:
         dest = os.path.abspath(Argv()[0])
+        prepare_module_dest_dir(dest)
         print "[installing modules to: %s]" % dest
     # distribute is strange, it masquerades as setuptools so
     # we need a special detection method.
