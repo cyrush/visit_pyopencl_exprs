@@ -1,2 +1,2 @@
 export PYTHONPATH=$PYTHONPATH:build/lib/
-visit -nowin -cli -s setup.py test
+visit -noconfig -nowin -cli -s setup.py test
