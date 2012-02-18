@@ -1,0 +1,77 @@
+#
+# VisIt Python Expression
+#
+
+import numpy as npy
+import pyopencl as cl
+# used to convert between vtk & numpy
+import vtk.util.numpy_support as vnp
+
+class PyOpenCLGrad(SimplePythonExpression):
+    def __init__(self):
+        SimplePythonExpression.__init__(self)
+        self.name = "PyOpenCLGrad"
+        self.description = "PyOpenCLGrad"
+        self.output_is_point_var = False
+        self.output_dimension = 3
+        self.ctx   = cl.create_some_context()
+        self.queue = cl.CommandQueue(self.ctx)
+        self.prog  = None
+    def derive_variable(self,ds_in,domain_id):
+        ncells = ds_in.GetNumberOfCells()
+        res = vtk.vtkFloatArray()
+        res.SetNumberOfComponents(3)
+        res.SetNumberOfTuples(ncells)
+        pt_data = ds_in.GetPointData()
+        x = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[0]))
+        y = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[1]))
+        o = vnp.vtk_to_numpy(res)
+        dims = ds_in.GetDimensions()
+        if len(self.input_var_names) == 3:
+            v =  vnp.vtk_to_numpy(ds_in.GetCellData().GetArray(self.input_var_names[2]))
+            if self.prog is None:
+                self.prog = cl.Program(self.ctx,open("cl/grad_2d.cl").read()).build()
+            self.__exec_2d(dims,x,y,v,o)
+        if len(self.input_var_names) == 4:
+            z = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[2]))
+            v =  vnp.vtk_to_numpy(ds_in.GetCellData().GetArray(self.input_var_names[3]))
+            if self.prog is None:
+                self.prog = cl.Program(self.ctx,open("cl/grad_3d.cl").read()).build()
+            self.__exec_3d(dims,x,y,z,v,o)
+        return res
+    def __exec_2d(self,dims,x,y,v,out):
+        print "shapes:"
+        print " x = %s" % str(x.shape)
+        print " y = %s" % str(y.shape)
+        print " v = %s" % str(v.shape)
+        print " o = %s" % str(out.shape)
+        mf = cl.mem_flags
+        d = npy.zeros((2,1),dtype=npy.int32)
+        d[:,0] = (dims[0],dims[1])
+        d_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=d)
+        x_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=x)
+        y_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=y)
+        v_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=v)
+        dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
+        self.prog.exe(self.queue, out.shape, None, d_buf, x_buf, y_buf, v_buf, dest_buf)
+        cl.enqueue_copy(self.queue, out, dest_buf)
+    def __exec_3d(self,dims,x,y,z,v,out):
+        print "shapes:"
+        print " x = %s" % str(x.shape)
+        print " y = %s" % str(y.shape)
+        print " z = %s" % str(y.shape)
+        print " v = %s" % str(v.shape)
+        print " o = %s" % str(out.shape)
+        mf = cl.mem_flags
+        d = npy.zeros((3,1),dtype=npy.int32)
+        d[:,0] = (dims[0],dims[1],dims[2])
+        d_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=d)
+        x_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=x)
+        y_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=y)
+        z_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=z)
+        v_buf    = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=v)
+        dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
+        self.prog.exe(self.queue, out.shape, None, d_buf,x_buf, y_buf, z_buf, v_buf, dest_buf)
+        cl.enqueue_copy(self.queue, out, dest_buf)
+ 
+py_filter = PyOpenCLGrad
