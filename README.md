@@ -44,5 +44,11 @@ _OSX Bundle Install:_
  > ./run_flow_workspace.sh examples/flow.setup.example.2.py
 </pre>
 
+Running standalone gradient example:
+---------------
+<pre>
+ > cd standalone/gradient/
+ > visit -cli -s visit -cli -s visit_pyopencl_grad_exec.py 
+<pre>
  
 
