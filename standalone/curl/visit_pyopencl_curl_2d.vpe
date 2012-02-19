@@ -1,0 +1,45 @@
+#
+# VisIt Python Expression
+#
+
+import numpy as npy
+import pyopencl as cl
+# used to convert between vtk & numpy
+import vtk.util.numpy_support as vnp
+
+class PyOpenCLCurl2D(SimplePythonExpression):
+    def __init__(self):
+        SimplePythonExpression.__init__(self)
+        self.name = "PyOpenCLCurl"
+        self.description = "PyOpenCLCurl"
+        self.output_is_point_var = False
+        print len(self.input_var_names)
+        self.output_dimension = 1
+        self.ctx   = cl.create_some_context()
+        self.queue = cl.CommandQueue(self.ctx)
+        self.prog  =  self.prog = cl.Program(self.ctx,open("cl/curl_2d.cl").read()).build()
+    def derive_variable(self,ds_in,domain_id):
+        ncells = ds_in.GetNumberOfCells()
+        res = vtk.vtkFloatArray()
+        res.SetNumberOfComponents(1)
+        res.SetNumberOfTuples(ncells)
+        cl_data = ds_in.GetCellData()
+        dfx = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[0]))
+        dfy = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[1]))
+        o   = vnp.vtk_to_numpy(res)
+        self.__exec_2d(dfx,dfy,o)
+        return res
+    def __exec_2d(self,dfx,dfy,out):
+        print "shapes:"
+        print " dfx = %s" % str(dfx.shape)
+        print " dfy = %s" % str(dfy.shape)
+        print " o   = %s" % str(out.shape)
+        mf = cl.mem_flags
+        dfx_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=dfx)
+        dfy_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=dfy)
+        dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
+        self.prog.exe(self.queue, out.shape, None, dfx_buf, dfy_buf, dest_buf)
+        cl.enqueue_copy(self.queue, out, dest_buf)
+
+
+py_filter = PyOpenCLCurl2D
