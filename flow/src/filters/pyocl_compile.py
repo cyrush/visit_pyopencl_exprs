@@ -53,7 +53,7 @@ class PyOpenCLCompileContext(Context):
             res += kern
         ident = "            "
         args_ident = "                               "
-        res += "\n%s__kernel void main(" % ident
+        res += "\n%s__kernel void kmain(" % ident
         for idx in range(len(self.inputs)):
             iname = "in_%04d" % idx
             res  += "__global const float *%s,\n%s" % (iname,args_ident)
@@ -83,7 +83,7 @@ class PyOpenCLCompileContext(Context):
         dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(self.ctx,kernel_source).build()
-        prg.main(queue, res.shape, None, *buffers)
+        prg.kmain(queue, res.shape, None, *buffers)
         cl.enqueue_copy(queue, res, dest_buf)
         return res
 

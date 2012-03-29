@@ -43,7 +43,7 @@ class PyOpenCLContext(Context):
         dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(self.ctx,kernel_source).build()
-        prg.main(queue, res.shape, None, *buffers)
+        prg.kmain(queue, res.shape, None, *buffers)
         cl.enqueue_copy(queue, res, dest_buf)
         return res
 
@@ -55,9 +55,9 @@ class PyOpenCLAdd(Filter):
     def execute(self):
         inputs = [self.input("in_a"), self.input("in_b")]
         kernel_source =  """
-            __kernel void main(__global const float *a,
-                               __global const float *b,
-                               __global float *c)
+            __kernel void kmain(__global const float *a,
+                                __global const float *b,
+                                __global float *c)
             {
               int gid = get_global_id(0);
               c[gid] = a[gid] + b[gid];
@@ -73,9 +73,9 @@ class PyOpenCLSub(Filter):
     def execute(self):
         inputs = [self.input("in_a"), self.input("in_b")]
         kernel_source =  """
-            __kernel void main(__global const float *a,
-                               __global const float *b,
-                               __global float *c)
+            __kernel void kmain(__global const float *a,
+                                __global const float *b,
+                                __global float *c)
             {
               int gid = get_global_id(0);
               c[gid] = a[gid] - b[gid];
@@ -91,9 +91,9 @@ class PyOpenCLMult(Filter):
     def execute(self):
         inputs = [self.input("in_a"), self.input("in_b")]
         kernel_source =  """
-            __kernel void main(__global const float *a,
-                               __global const float *b,
-                               __global float *c)
+            __kernel void kmain(__global const float *a,
+                                __global const float *b,
+                                __global float *c)
             {
               int gid = get_global_id(0);
               c[gid] = a[gid] * b[gid];
