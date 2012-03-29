@@ -1,2 +1,8 @@
 *.pyc
 visitlog.py
+_build_pyopencl_support
+py-site-packages
+slurm-*.out
+*core
+
+

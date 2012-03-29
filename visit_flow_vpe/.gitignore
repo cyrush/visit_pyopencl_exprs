@@ -1,6 +1,6 @@
-build/
+build
 setup_tests.pyc
-tests/_test_output/
+tests/_test_output
 tests/*.pyc
 tests/__init__.py
 tests/__init__.pyc
