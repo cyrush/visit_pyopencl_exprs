@@ -1,0 +1,4 @@
+*.pyc
+visitlog.py
+parser/*pyc
+parser/ply-3.4/ply/*pyc
