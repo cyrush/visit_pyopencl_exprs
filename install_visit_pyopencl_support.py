@@ -10,7 +10,10 @@
   a VisIt install.
 
  usage:
+ # via VisIt's cli
  >visit -nowin -cli -s install_visit_pyopencl_support.py <destination-dir>
+ # via std python
+ >python install_visit_pyopencl_support.py <destination-dir>
 """
 
 import os
@@ -21,12 +24,39 @@ import urllib
 import tarfile
 import zipfile
 
+using_visit = False
+try:
+    import visit
+    using_visit= True
+except ImportError:
+    pass
+
 from os.path import join as pjoin
+
+def SetupError(Exception):
+    """ Exception when for when something goes wrong. """
+    def __init__(self,msg):
+        super(SetupError,self).__init__()
+        print msg
 
 def sexe(cmd,echo=True):
     """ Shell command helper. """
     print "[exe: %s]"% cmd
-    subprocess.call(cmd,shell=True)
+    ret = subprocess.call(cmd,shell=True)
+    if ret != 0:
+        raise SetupError("Error with shell command: %s" % cmd)
+
+def python_bin():
+    """ Fetches the proper path to visit or python. """
+    if using_visit:
+        ret = subprocess.call("which visit",shell=True)
+        if ret != 0:
+            raise SetupError("VisIt is not in your env PATH.")
+        # return visit cli as exe
+        return "visit -nowin -cli -s"
+    else:
+        # return python exe
+        return sys.executable()
 
 def check_for_existing_module(mod_name,mod_ver=None):
     """
@@ -151,7 +181,11 @@ def setup_numpy(dest_dir=None):
     sexe('git clone %s' % npy_repo)
     patch_python_setup_file(pjoin("numpy","setup.py"),seed="import subprocess\n")
     print "[building + installing: `numpy']"
-    cmd ="cd numpy; visit -nowin -cli -s setup.py install"
+    cmd ="cd numpy; %s setup.py build " % python_bin()
+    if os.environ.has_key("FCOMPILER"):
+        cmd += "--fcompiler=%s " % os.environ["FCOMPILER"]
+    sexe(cmd)
+    cmd ="cd numpy; %s setup.py install" % python_bin()
     if not dest_dir is None:
         cmd += " --prefix %s" % dest_dir
     sexe(cmd)
@@ -183,7 +217,7 @@ def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False,dest_dir=N
         zipfile.ZipFile(pypi_file,"r").extractall()    
     patch_python_setup_file(pjoin(pypi_dir,"setup.py"))
     print "[building + installing: `%s']" % pkg_name
-    cmd = "cd %s; visit -nowin -cli -s setup.py install" % pypi_dir 
+    cmd = "cd %s; %s setup.py install" % (pypi_dir,python_bin())
     if not dest_dir is None:
         cmd += " --prefix %s" % dest_dir
     sexe(cmd)
@@ -208,9 +242,13 @@ def setup_all():
     setup_pypi_package("decorator","3.3.2",dest_dir=dest)
     setup_pypi_package("pyopencl","2011.1.2",dest_dir=dest)
 
-if __visit_script_file__ == __visit_source_file__:
-    try:
+if using_visit:
+    if __visit_script_file__ == __visit_source_file__:
+        try:
+            setup_all()
+        except:
+            pass
+        sys.exit(0)
+else:
+    if __name__ == "__main__":
         setup_all()
-    except:
-        pass
-    sys.exit(0)
