@@ -1,0 +1,59 @@
+# [VisIt Python Expression]
+#
+# ${disclaimer}
+#
+"""
+ file: visit_flow_exec.vpe
+ author: Cyrus Harrison <cyrush@llnl.gov>
+ created:  12/09/2011
+ description:
+    VisIt Python Expression that executes a flow workspace.
+
+"""
+
+import numpy as npy
+# used to convert between vtk & numpy
+import vtk.util.numpy_support as vnp
+
+from flow import *
+from flow.filters import pyocl_compile
+
+
+class FlowExecExpr(SimplePythonExpression):
+    def __init__(self):
+        SimplePythonExpression.__init__(self)
+        self.name = "FlowExecExpr"
+        self.output_is_point_var = False
+        self.output_dimension = 1
+    def derive_variable(self,ds_in,domain_id):
+        # get workspace
+        wstype = self.arguments[0]
+        if wstype == "src":
+            w = Workspace.load_workspace_script(src=self.arguments[1])
+        else:
+            w = Workspace.load_workspace_script(filename=self.arguments[1])
+        # construct output array
+        ncells = ds_in.GetNumberOfCells()
+        res = vtk.vtkFloatArray()
+        res.SetNumberOfComponents(1)
+        res.SetNumberOfTuples(ncells)
+        out = vnp.vtk_to_numpy(res)
+        # get input arrays & bind data into workspace
+        for var in self.input_var_names:
+            vdata = vnp.vtk_to_numpy(ds_in.GetCellData().GetArray(var))
+            w.registry_add(":" + var,vdata)
+        # exec filter graph (returns last registry entry obj)
+        r = w.execute()
+        # check the active context to see if
+        # are using npy_compile or pyocl_compile
+        if w.has_context("root"):
+            ctx = w.get_context("root")
+            if ctx.context_type.count("compile") > 0:
+                if mpicom.rank() == 0:
+                    print ctx.compile()
+                    r = ctx.run()
+        # set result (results in a numpy data copy)
+        out[:] = r
+        return res
+
+py_filter = FlowExecExpr
