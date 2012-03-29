@@ -1,0 +1,4 @@
+parser/*pyc
+parser/ply-3.4/ply/*pyc
+parser.out
+parsetab.py
