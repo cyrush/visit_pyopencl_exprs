@@ -31,17 +31,17 @@ _OSX Bundle Install:_
 <pre>
  > visit -nowin -cli -s install_visit_pyopencl_support.py
 </pre>
-5. Run the module tests
+5. Run module tests for flow & visit_flow_vpe
 <pre>
  > ./run_tests.sh
 </pre>
 
 6. Run the example flow workspaces
 <pre>
- > ./run_flow_workspace.sh examples/flow.setup.example.1.py
+ > ./run_flow_vpe_workspace.sh visit_flow_vpe/examples/flow_vpe_npy_ops_example_1.py 
 </pre>
 <pre>
- > ./run_flow_workspace.sh examples/flow.setup.example.2.py
+ > ./run_flow_vpe_workspace.sh visit_flow_vpe/examples/flow_vpe_pyocl_compile_example_1.py
 </pre>
 
 Running standalone gradient example:
