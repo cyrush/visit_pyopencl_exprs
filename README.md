@@ -36,7 +36,9 @@ _OSX Bundle Install:_
  > ./run_tests.sh
 </pre>
 
-6. Run the example flow workspaces
+
+How to run example data flow workspaces:
+---------------
 <pre>
  > ./run_flow_vpe_workspace.sh visit_flow_vpe/examples/flow_vpe_npy_ops_example_1.py 
 </pre>
@@ -44,7 +46,7 @@ _OSX Bundle Install:_
  > ./run_flow_vpe_workspace.sh visit_flow_vpe/examples/flow_vpe_pyocl_compile_example_1.py
 </pre>
 
-Running standalone gradient example:
+How to run the standalone gradient example:
 ---------------
 <pre>
  > cd standalone/gradient/
