@@ -49,9 +49,9 @@ def exe_3d(db):
 
 
 def main():
-    exe_2d("../../tests/data/rect2d.silo")
+    exe_2d("../../visit_flow_vpe/tests/_data/rect2d.silo")
     AddWindow()
-    exe_3d("../../tests/data/rect3d.silo")
+    exe_3d("../../visit_flow_vpe/tests/_data/rect3d.silo")
         
 if __visit_script_file__ == __visit_source_file__:
     main()
