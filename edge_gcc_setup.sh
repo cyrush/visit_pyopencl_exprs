@@ -1,5 +1,5 @@
 #!/bin/sh
-export MODULE_DEST=/g/g24/cyrush/work/visit_pyopencl_exprs/py-site-packages/
+export MODULE_DEST=`pwd`/py-site-packages/
 export VISIT_LOC=/usr/gapps/visit/
 export PATH=$PATH:$VISIT_LOC/bin/
 # python path must include your module dir

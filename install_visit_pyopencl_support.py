@@ -190,6 +190,29 @@ def setup_numpy(dest_dir=None):
         cmd += " --prefix %s" % dest_dir
     sexe(cmd)
 
+def setup_pyopencl(dest_dir=None):
+    """ Builds and installs pyopencl."""
+    if check_for_existing_module("pyopencl"):
+        print "[skipping build: `pyopencl' is already installed]"
+        return
+    prepare_build_dir()
+    print "[preparing to build: `pyopencl' version: (git-trunk)]"
+    # get numpy source
+    if os.path.isdir("pyopencl"):
+        print "[removing existing source dir: `pyopencl']"
+        shutil.rmtree("pyopencl")
+    pyocl_repo = "http://git.tiker.net/trees/pyopencl.git"
+    print "[cloning `pyopencl' git repo (%s)]" % pyocl_repo
+    sexe('git clone %s' % pyocl_repo)
+    sexe('cd pyopencl; git submodule init; git submodule update');
+    patch_python_setup_file(pjoin("pyopencl","setup.py"))
+    print "[building + installing: `pyopencl']"
+    cmd ="cd pyopencl; %s setup.py build " % python_bin()
+    cmd ="cd pyopencl; %s setup.py install" % python_bin()
+    if not dest_dir is None:
+        cmd += " --prefix %s" % dest_dir
+    sexe(cmd)
+
 def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False,dest_dir=None):
     """ Builds and installs a package from pypi."""
     if not force:
@@ -241,6 +264,7 @@ def setup_all():
     setup_pypi_package("pytools","2011.4",dest_dir=dest)
     setup_pypi_package("decorator","3.3.2",dest_dir=dest)
     setup_pypi_package("pyopencl","2011.1.2",dest_dir=dest)
+    #setup_pyopencl(dest);
 
 if using_visit:
     if __visit_script_file__ == __visit_source_file__:
