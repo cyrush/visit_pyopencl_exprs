@@ -20,6 +20,7 @@ except ImportError:
     pass
 
 from ..core import Filter, Context, log
+import pyocl_context
 
 def info(msg):
     log.info(msg,"filters.pyocl_compile")
@@ -27,7 +28,6 @@ def info(msg):
 class PyOpenCLCompileContext(Context):
     context_type = "pyocl_compile"
     def start(self):
-        self.ctx = cl.create_some_context()
         self.kernels = {}
         self.stmts   = []
         self.inputs  = []
@@ -70,19 +70,20 @@ class PyOpenCLCompileContext(Context):
         kernel_source = self.compile()
         return self.execute_kernel(kernel_source,self.inputs)
     def execute_kernel(self,kernel_source,inputs):
+        ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
         info(msg)
-        queue = cl.CommandQueue(self.ctx)
+        queue = cl.CommandQueue(ctx)
         mf    = cl.mem_flags
         buffers = []
         for ipt in inputs:
-            buf = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
+            buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
             buffers.append(buf)
         res = npy.zeros(inputs[0].shape,dtype=npy.float32)
-        dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, res.nbytes)
+        dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
-        prg = cl.Program(self.ctx,kernel_source).build()
+        prg = cl.Program(ctx,kernel_source).build()
         prg.kmain(queue, res.shape, None, *buffers)
         cl.enqueue_copy(queue, res, dest_buf)
         return res
