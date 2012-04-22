@@ -61,24 +61,19 @@ Getting Started On Edge
  > git clone git://github.com/cyrush/visit_pyopencl_exprs.git
 </pre>
 
-2. Checkout the edge_driver_fix branch:
-<pre>
- > cd visit_pyopencl_exprs
- > git checkout --track -b edge_driver_fix  origin/edge_driver_fix
-</pre>
 
-3. Install necessary support python modules
+2. Install necessary support python modules
 <pre>
  > ./edge_gcc_setup.sh
 </pre>
 
-4. Run tests in an mxterm (to access GPUS)
+3. Run tests in an mxterm (to access GPUS)
 <pre>
  > mxterm 1 12 30
  [mxterm]> ./edge_gcc_run_tests.sh
 </pre>
 
-5. Test a single work flow example:
+4. Test a single work flow example:
 <pre>
  [mxterm]> ./run_flow_vpe_workspace.sh visit_flow_vpe/examples/flow_vpe_pyocl_ops_example_1.py
  (Select 'serial' from the VisIt engine launcher and click 'ok')
