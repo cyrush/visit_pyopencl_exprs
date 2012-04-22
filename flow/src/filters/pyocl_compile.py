@@ -2,11 +2,12 @@
 # ${disclaimer}
 #
 """
- file: npy_ops.py
+ file: pyocl_compile.py
  author: Cyrus Harrison <cyrush@llnl.gov>
+         Maysam Moussalem <maysam@cs.utexas.edu>
  created: 3/24/2012
  description:
-    Provides flow filters that compile and execute numpy operations.
+    Provides flow filters that compile and execute PyOpenCL operations.
 
 """
 
@@ -74,7 +75,7 @@ class PyOpenCLCompileContext(Context):
         msg  = "Execute Kernel:\n"
         msg += kernel_source
         info(msg)
-        queue = cl.CommandQueue(ctx)
+        queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
         mf    = cl.mem_flags
         buffers = []
         for ipt in inputs:
@@ -144,9 +145,234 @@ class PyOpenCLCompileMult(Filter):
             """
         return self.context.add_call("kmult",kernel_source,args)
 
+class PyOpenCLCompileDiv(Filter):
+    filter_type    = "div"
+    input_ports    = ["in_a","in_b"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in_a"), self.input("in_b")]
+        kernel_source =  """
+            float kdiv(const float a,const float b)
+            {return a / b;}
+            """
+        return self.context.add_call("kdiv",kernel_source,args)
+
+class PyOpenCLCompileMod(Filter):
+    filter_type    = "mod"
+    input_ports    = ["in_a","in_b"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in_a"), self.input("in_b")]
+        kernel_source =  """
+            float kmod(const float a, const float b)
+            {return a % b;}
+            """
+        return self.context.add_call("kmod",kernel_source,args)
+
+class PyOpenCLCompileCos(Filter):
+    filter_type    = "cos"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kcos(const float a)
+            {return cos(a);}
+            """
+        return self.context.add_call("kcos",kernel_source,args)
+
+class PyOpenCLCompileSin(Filter):
+    filter_type    = "sin"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float ksin(const float a)
+            {return sin(a);}
+            """
+        return self.context.add_call("ksin",kernel_source,args)
+
+class PyOpenCLCompileTan(Filter):
+    filter_type    = "tan"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float ktan(const float a)
+            {return tan(a);}
+            """
+        return self.context.add_call("ktan",kernel_source,args)
+
+class PyOpenCLCompileCeil(Filter):
+    filter_type    = "ceil"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kceil(const float a)
+            {return ceil(a);}
+            """
+        return self.context.add_call("kceil",kernel_source,args)
+
+class PyOpenCLCompileFloor(Filter):
+    filter_type    = "floor"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kfloor(const float a)
+            {return floor(a);}
+            """
+        return self.context.add_call("kfloor",kernel_source,args)
+
+class PyOpenCLCompileAbs(Filter):
+    filter_type    = "abs"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kabs(const float a)
+            {return abs(a);}
+            """
+        return self.context.add_call("kabs",kernel_source,args)
+
+class PyOpenCLCompileLog10(Filter):
+    filter_type    = "log10"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float klog10(const float a)
+            {return log10(a);}
+            """
+        return self.context.add_call("klog10",kernel_source,args)
+
+class PyOpenCLCompileLog(Filter):
+    filter_type    = "log"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float klog(const float a)
+            {return log(a);}
+            """
+        return self.context.add_call("klog",kernel_source,args)
+
+class PyOpenCLCompileExp(Filter):
+    filter_type    = "exp"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kexp(const float a)
+            {return exp(a);}
+            """
+        return self.context.add_call("kexp",kernel_source,args)
+
+class PyOpenCLCompilePow(Filter):
+    filter_type    = "pow"
+    input_ports    = ["in_a", "in_b"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in_a"), self.input("in_b")]
+        kernel_source =  """
+            float kpow(const float a, const float b)
+            {return kpow(a, b);}
+            """
+        return self.context.add_call("kpow",kernel_source,args)
+
+class PyOpenCLCompileId(Filter):
+    filter_type    = "id"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kid(const float a)
+            {return a;}
+            """
+        return self.context.add_call("kid",kernel_source,args)
+
+class PyOpenCLCompileRound(Filter):
+    filter_type    = "round"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float kround(const float a)
+            {if (a < 0.) return (-floor(fabs(a) + 0.5));
+             else return floor(fabs(a + 0.5))}
+            """
+        return self.context.add_call("kround",kernel_source,args)
+
+class PyOpenCLCompileSquare(Filter):
+    filter_type    = "square"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float ksquare(const float a)
+            {return a*a;}
+            """
+        return self.context.add_call("ksquare",kernel_source,args)
+
+class PyOpenCLCompileSqrt(Filter):
+    filter_type    = "sqrt"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in")]
+        kernel_source =  """
+            float ksqrt(const float a)
+            {return sqrt(a);}
+            """
+        return self.context.add_call("ksqrt",kernel_source,args)
+
 filters = [PyOpenCLCompileSource,
            PyOpenCLCompileAdd,
            PyOpenCLCompileSub,
-           PyOpenCLCompileMult]
+           PyOpenCLCompileMult,
+           PyOpenCLCompileDiv,
+           PyOpenCLCompileMod,
+           PyOpenCLCompileCos,
+           PyOpenCLCompileSin,
+           PyOpenCLCompileTan,
+           PyOpenCLCompileCeil,
+           PyOpenCLCompileFloor,
+           PyOpenCLCompileAbs,
+           PyOpenCLCompileLog10,
+           PyOpenCLCompileLog,
+           PyOpenCLCompileExp,
+           PyOpenCLCompilePow,
+           PyOpenCLCompileId,
+           PyOpenCLCompileRound,
+           PyOpenCLCompileSquare,
+           PyOpenCLCompileSqrt]
 
 contexts = [PyOpenCLCompileContext]
