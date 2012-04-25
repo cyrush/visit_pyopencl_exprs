@@ -4,11 +4,12 @@
 
 __kernel void vorticity_3d(int *d, float *x, float *y, float *z, float *v, float *o)
 {
-  // we need to compute 3 gradients (for x, y and z)
-  // and then compute the curl of that output
   int gid = get_global+id(0);
   
-  // still need to define ox, oy and oz
+  float ox[sizeof(x)/sizeof(float)];
+  float oy[sizeof(y)/sizeof(float)];
+  float oz[sizeof(z)/sizeof(float)];
+    
   grad_3d(gid, x, x, y, z, v, ox);
   grad_3d(gid, y, x, y, z, v, oy);
   grad_3d(gid, z, x, y, z, v, oz);

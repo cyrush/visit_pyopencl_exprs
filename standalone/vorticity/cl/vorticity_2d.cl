@@ -3,12 +3,12 @@
 //
 
 __kernel void vorticity_2d(int *d, float *x, float *y, float *v, float *o)
-{
-  // we need to compute 2 gradients (for x and y)
-  // and then compute the curl of that output
+{  
   int gid = get_global+id(0);
   
-  // still need to define ox and oy
+  float ox[sizeof(x)/sizeof(float)];
+  float oy[sizeof(y)/sizeof(float)];
+  
   grad_2d(gid, x, x, y, v, ox);
   grad_2d(gid, y, x, y, v, oy);
   curl_2d(gid, ox, oy, o);
