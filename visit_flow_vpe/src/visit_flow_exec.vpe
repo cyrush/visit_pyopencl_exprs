@@ -34,13 +34,20 @@ class FlowExecExpr(SimplePythonExpression):
             w = Workspace.load_workspace_script(filename=self.arguments[1])
         # construct output array
         ncells = ds_in.GetNumberOfCells()
+        dims = ds_in.GetDimensions()
+        w.registry_add(":dims",dims)
         res = vtk.vtkFloatArray()
         res.SetNumberOfComponents(1)
         res.SetNumberOfTuples(ncells)
         out = vnp.vtk_to_numpy(res)
         # get input arrays & bind data into workspace
         for var in self.input_var_names:
-            vdata = vnp.vtk_to_numpy(ds_in.GetCellData().GetArray(var))
+            vdata = ds_in.GetCellData().GetArray(var)
+            if vdata is None:
+                vdata = ds_in.GetPointData().GetArray(var)
+            if vdata is None:
+                raise Exception("flow_vpe error: could not fetch %s" % var)
+            vdata = vnp.vtk_to_numpy(vdata)
             w.registry_add(":" + var,vdata)
         # exec filter graph (returns last registry entry obj)
         r = w.execute()

@@ -13,6 +13,7 @@
 import sys
 import hashlib
 import imp
+import traceback
 
 from registry      import *
 from filter_graph  import *
@@ -338,19 +339,26 @@ class Workspace(object):
                 # get filter node & # of refs 
                 node_name, uref = v
                 node = self.graph.nodes[node_name]
-                # get inputs from registry
-                inputs = {}
-                msg  = "Execute: %s" % node_name
-                for port_name in node.input_ports:
-                    src_name = self.graph.edges_in[node_name][port_name]
-                    entry_key = str(svec) + ":" + src_name
-                    msg += " (%s:%s)" % (port_name,entry_key)
-                    data = self.registry.fetch_entry(entry_key)
-                    inputs[port_name]  = data
-                node.set_inputs(inputs)
-                node.set_state_vector(svec)
-                info(msg)
-                res = node.execute()
+                try:
+                    # get inputs from registry
+                    inputs = {}
+                    msg  = "Execute: %s" % node_name
+                    for port_name in node.input_ports:
+                        src_name = self.graph.edges_in[node_name][port_name]
+                        entry_key = str(svec) + ":" + src_name
+                        msg += " (%s:%s)" % (port_name,entry_key)
+                        data = self.registry.fetch_entry(entry_key)
+                        inputs[port_name]  = data
+                    node.set_inputs(inputs)
+                    node.set_state_vector(svec)
+                    info(msg)
+                    res = node.execute()
+                except Exception as e:
+                    msg  = "Execute Error: %s" % node_name
+                    print msg
+                    info(msg)
+                    traceback.print_stack()
+                    raise e
                 # if output exists, place in registry
                 if not res is None:
                     entry_key = str(svec) + ":" + node.name
@@ -360,9 +368,9 @@ class Workspace(object):
         return res
     @classmethod
     def load_workspace_script(cls,src=None,file=None):
-        """ 
+        """
         Helper used to load a workspace from a python script.
-        
+
         (May not be necessary)
         """
         if src is None and not filename is None:

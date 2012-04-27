@@ -18,9 +18,12 @@ from os.path import join as pjoin
 from visit_flow_vpe import *
 
 def main():
-    args = Argv()
-    wfile = args[0]
-    visit.OpenDatabase(pjoin("tests","_data","rect2d.silo"))
+    args   = Argv()
+    wfile  = args[0]
+    dbfile = pjoin("tests","_data","rect2d.silo")
+    if len(args) > 1:
+        dbfile = args[1]
+    visit.OpenDatabase(dbfile)
     define_flow_vpe("flow",file=wfile)
     visit.AddPlot("Pseudocolor","flow")
     visit.DrawPlots()

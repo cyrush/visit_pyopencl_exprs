@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # ${disclaimer}
 #
@@ -40,7 +39,7 @@ def define_flow_vpe(ename,src=None,file=None):
     w = Workspace.load_workspace_script(src=script_src)
     # get root vars & use as expr args
     evars = w.filter_names()
-    evars = [ evar[1:] for evar in evars if evar[0] == ":"]
+    evars = [ evar[1:] for evar in evars if evar[0] == ":" and evar != ":dims"]
     args.extend(evars)
     script_src = escape_src(script_src)
     args.extend(['"src"','"' + script_src + '"'])
