@@ -90,5 +90,6 @@ def setup_workspace():
     w.connect("vort_z_sq","vort_mag_add_2:in_b")
     #
     w.connect("vort_mag_add_2","vort_mag_sqrt:in")
+    print str(w.execution_plan())
     return w
 
