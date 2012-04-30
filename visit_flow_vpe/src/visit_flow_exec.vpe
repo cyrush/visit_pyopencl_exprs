@@ -34,7 +34,7 @@ class FlowExecExpr(SimplePythonExpression):
             w = Workspace.load_workspace_script(filename=self.arguments[1])
         # construct output array
         ncells = ds_in.GetNumberOfCells()
-        dims = ds_in.GetDimensions()
+        dims = npy.array(ds_in.GetDimensions(),dtype=npy.int32)
         w.registry_add(":dims",dims)
         res = vtk.vtkFloatArray()
         res.SetNumberOfComponents(1)

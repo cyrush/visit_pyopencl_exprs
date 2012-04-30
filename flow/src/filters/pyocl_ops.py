@@ -31,7 +31,7 @@ class PyOpenCLContext(Context):
     def start(self):
         """ Start context"""
         pass
-    def execute_kernel(self,kernel_source,inputs):
+    def execute_kernel(self,kernel_source,inputs,out_dim=None):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
@@ -42,7 +42,11 @@ class PyOpenCLContext(Context):
         for ipt in inputs:
             buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
             buffers.append(buf)
-        res = npy.zeros(inputs[0].shape,dtype=npy.float32)
+        if out_dim is None:
+            out_dim = inputs[0].shape
+        else:
+            out_dim = (inputs[0].shape[0],out_dim)
+        res = npy.zeros(out_dim,dtype=npy.float32)
         dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(ctx,kernel_source).build()
@@ -342,9 +346,9 @@ class PyOpenCLRound(Filter):
               int gid = get_global_id(0);
               int val = a[gid];
               if (val < 0.)
-		c[gid] = - floor(fabs(val) + 0.5);
-	      else
-		c[gid] = floor(fabs(val + 0.5));
+                c[gid] = - floor(fabs(val) + 0.5);
+              else
+                c[gid] = floor(fabs(val + 0.5));
             }
             """
         return self.context.execute_kernel(kernel_source,inputs)
@@ -383,19 +387,47 @@ class PyOpenCLSqrt(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLGrad2D(Filter):
-    filter_type    = "grad2d"
-    input_ports    = ["in_d", "in_x", "in_y", "in_v", "in_o"]
+class PyOpenCLArrayCompose(Filter):
+    filter_type    = "compose"
+    input_ports    = ["in_a","in_b"]
     default_params = {}
     output_port    = True
     def execute(self):
-        inputs = [self.input("in_d"), self.input("in_x"), self.input("in_y"),
-                  self.input("in_v"), self.input("in_o")]
+        a = self.input("in_a")
+        b = self.input("in_b")
+        if len(a.shape) == 1:
+            a = a.reshape(a.shape[0],1)
+        if len(b.shape) == 1:
+            b = b.reshape(a.shape[0],1)
+        res = npy.hstack((a,b))
+        return res
+
+class PyOpenCLArrayDecompose(Filter):
+    filter_type    = "decompose"
+    input_ports    = ["in"]
+    default_params = {"index":0}
+    output_port    = True
+    def execute(self):
+        p = self.params
+        a = self.input("in")
+        return npy.array(a[:,p.index])
+
+class PyOpenCLGrad2D(Filter):
+    filter_type    = "grad2d"
+    input_ports    = ["in", "dims", "x", "y"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        inputs = [self.input("in"),
+                  self.input("dims"),
+                  self.input("x"),
+                  self.input("y")
+                  ]
         kernel_source =  """
-            __kernel void kmain(__global const int   *d,
+            __kernel void kmain(__global const float *v,
+                                __global const int   *d,
                                 __global const float *x,
                                 __global const float *y,
-                                __global const float *v, 
                                 __global float *o)
             {
               int gid = get_global_id(0);
@@ -404,11 +436,11 @@ class PyOpenCLGrad2D(Filter):
 
               int zi = gid % di;
               int zj = gid / di;
-  
+
               // for rectilinear, we only need 2 points to get dx,dy
               int pi0 = zi + zj*(di+1);
               int pi1 = zi + 1 + (zj+1)*(di+1);
-  
+
               float vv = v[gid];
 
               float vx0 = vv;
@@ -442,94 +474,118 @@ class PyOpenCLGrad2D(Filter):
               o[gid*3+1] = dvdy;
             }
             """
-        return self.context.execute_kernel(kernel_source,inputs)
+        return self.context.execute_kernel(kernel_source,inputs,out_dims=2)
 
 class PyOpenCLGrad3D(Filter):
-    filter_type    = "grad3d"
-    input_ports    = ["in"]
+    filter_type    = "grad"
+    input_ports    = ["dims","x","y","z","in"]
     default_params = {}
     output_port    = True
     def execute(self):
-        inputs = [self.input("in_d"), self.input("in_x"), self.input("in_y"),
-                  self.input("in_z"), self.input("in_v"), self.input("in_o")]
+        inputs = [self.input("in"),
+                  self.input("dims"),
+                  self.input("x"),
+                  self.input("y"),
+                  self.input("z")]
         kernel_source =  """
-            __kernel void kmain(__global const int   *d,
+            __kernel void kmain(__global const float *v,
+                                __global const int   *d,
                                 __global const float *x,
                                 __global const float *y,
                                 __global const float *z,
-                                __global const float *v, 
                                 __global float *o)
             {
-              int gid = get_global_id(0);
-              int di = d[0]-1;
-              int dj = d[1]-1;
-              int dk = d[2]-1;
+                int gid = get_global_id(0);
 
-              int zi = gid % di;
-              int zj = (gid / di) % dj;
-              int zk =  (gid / di) / dj;
+                int di = d[0]-1;
+                int dj = d[1]-1;
+                int dk = d[2]-1;
 
-              // for rectilinear, we only need 2 points to get dx,dy,dz
-              int pi0 = zi + zj*(di+1) + zk*(di+1)*(dj+1);
-              int pi1 = zi + 1 + (zj+1)*(di+1) + (zk+1)*(di+1)*(dj+1);
-  
-              float vv = v[gid];
+                int zi = gid % di;
+                int zj = (gid / di) % dj;
+                int zk = (gid / di) / dj;
 
-              float vx0 = vv;
-              float vx1 = vv;
-              if(zi > 0)    vx0 = v[gid-1];
-              if(zi < di-1) vx1 = v[gid+1];
+                // for rectilinear, we only need 2 points to get dx,dy,dz
+                int pi0 = zi + zj*(di+1) + zk*(di+1)*(dj+1);
+                int pi1 = zi + 1 + (zj+1)*(di+1) + (zk+1)*(di+1)*(dj+1);
 
-              float vy0 = vv;
-              float vy1 = vv;
-              if(zj > 0)    vy0 = v[zi + (zj-1)*di + zk*(di*dj)];
-              if(zj < dj-1) vy1 = v[zi + (zj+1)*di + zk*(di*dj)];
+                float vv = v[gid];
+                float4 p_0 = (float4)(x[pi0],y[pi0],z[pi0],1.0);
+                float4 p_1 = (float4)(x[pi1],y[pi1],z[pi1],1.0);
+                float4 dg  = p_1 - p_0;
 
-              float vz0 = vv;
-              float vz1 = vv;
-              if(zk > 0)    vz0 = v[zi + zj*di + (zk-1)*(di*dj)];
-              if(zk < dk-1) vz1 = v[zi + zj*di + (zk+1)*(di*dj)];
+                // value
+                float4 f_0 = (float4)(vv,vv,vv,1.0);
+                float4 f_1 = (float4)(vv,vv,vv,1.0);
 
-              float x0 = x[pi0];
-              float x1 = x[pi1];
+                // i bounds
+                if(zi > 0)
+                {
+                    f_0.x = v[gid-1];
+                }
 
-              float y0 = y[pi0];
-              float y1 = y[pi1];
+                if(zi < (di-1))
+                {
+                    f_1.x = v[gid+1];
+                }
 
-              float z0 = z[pi0];
-              float z1 = z[pi1];
+                // j bounds
+                if(zj > 0)
+                {
+                    f_0.y = v[gid-di];
+                }
 
-              float dx = (x1 - x0);
-              float dy = (y1 - y0);
-              float dz = (z1 - z0);
-              float dvdx = .5  * (vx1 - vx0) / dx;
-              float dvdy = .5  * (vy1 - vy0) / dy;
-              float dvdz = .5  * (vz1 - vz0) / dz;
+                if(zj < (dj-1))
+                {
+                    f_1.y = v[gid+di];
+                }
 
-              // forward diff @ boundries
-              if(zi == 0)    dvdx = (vx1 - vx0)/dx;
-              if(zi == di-1) dvdx = (vx1 - vx0)/dx;
-              if(zj == 0)    dvdy = (vy1 - vy0)/dy;
-              if(zj == dj-1) dvdy = (vy1 - vy0)/dy;
-              if(zk == 0)    dvdz = (vz1 - vz0)/dz;
-              if(zk == dk-1) dvdz = (vz1 - vz0)/dz;
+                // k bounds
+                if(zk > 0)
+                {
+                    f_0.z = v[gid-(di*dj)];
+                }
 
-              o[gid*3]   = dvdx;
-              o[gid*3+1] = dvdy;
-              o[gid*3+2] = dvdz;
+                if(zk < (dk-1))
+                {
+                    f_1.z = v[gid+(di*dj)];
+                }
 
+                float4 df = (f_1 - f_0) / dg;
+
+                // central diff if we aren't on the edges
+                if( (zi != 0) && (zi != (di-1)))
+                {
+                    df.x *= .5;
+                }
+
+                // central diff if we aren't on the edges
+                if( (zj != 0) && (zj != (dj-1)))
+                {
+                    df.y *= .5;
+                }
+
+                // central diff if we aren't on the edges
+                if( (zk != 0) && (zk != (dk-1)))
+                {
+                    df.z *= .5;
+                }
+
+                o[gid*3]   = df.x;
+                o[gid*3+1] = df.y;
+                o[gid*3+2] = df.z;
             }
             """
-        return self.context.execute_kernel(kernel_source,inputs)
+        return self.context.execute_kernel(kernel_source,inputs,out_dim=3)
 
 class PyOpenCLCurl2D(Filter):
     filter_type    = "curl2d"
-    input_ports    = ["in_dfx", "in_dfy", "in_o"]
+    input_ports    = ["in_dfx", "in_dfy"]
     default_params = {}
     output_port    = True
     def execute(self):
-        inputs = [self.input("in_dfx"), self.input("in_dfy"),
-                  self.input("in_o")]
+        inputs = [self.input("in_dfx"), 
+                  self.input("in_dfy")]
         kernel_source =  """
             __kernel void kmain(__global const float *dfx,
                                 __global const float *dfy,
@@ -545,12 +601,13 @@ class PyOpenCLCurl2D(Filter):
 
 class PyOpenCLCurl3D(Filter):
     filter_type    = "curl3d"
-    input_ports    = ["in_dfx", "in_dfy", "in_dfz", "in_o"]
+    input_ports    = ["in_dfx", "in_dfy", "in_dfz"]
     default_params = {}
     output_port    = True
     def execute(self):
-        inputs = [self.input("in_dfx"), self.input("in_dfy"),
-                  self.input("in_dfz"), self.input("in_o")]
+        inputs = [self.input("in_dfx"),
+                  self.input("in_dfy"),
+                  self.input("in_dfz"),]
         kernel_source =  """
             __kernel void kmain(__global const float *dfx,
                                 __global const float *dfy,
@@ -569,11 +626,11 @@ class PyOpenCLCurl3D(Filter):
               float dfxdy = dfx[gid*3+1];
 
               o[gid*3]   = dfzdy - dfydz;
-              o[gid*3+1] = dfxdz - dfzdx;  
+              o[gid*3+1] = dfxdz - dfzdx;
               o[gid*3+2] = dfydx - dfxdy;
             }
             """
-        return self.context.execute_kernel(kernel_source,inputs)
+        return self.context.execute_kernel(kernel_source,inputs,out_dim=3)
 
 filters = [PyOpenCLAdd,
            PyOpenCLSub,
@@ -594,6 +651,8 @@ filters = [PyOpenCLAdd,
            PyOpenCLRound,
            PyOpenCLSquare,
            PyOpenCLSqrt,
+           PyOpenCLArrayCompose,
+           PyOpenCLArrayDecompose,
            PyOpenCLGrad2D,
            PyOpenCLGrad3D,
            PyOpenCLCurl2D,
