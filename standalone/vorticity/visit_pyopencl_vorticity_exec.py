@@ -15,10 +15,9 @@ import visit
 def exe_3d(db):
     OpenDatabase(db)
     fvpe = "visit_pyopencl_vorticity.vpe"
-    DefinePythonExpression("vort",
+    DefinePythonExpression("vort_mag",
                             source="PythonFilter.load('%s')\n" % fvpe,
-                            args=["x","y","z","vx","vy","vz"],type="vector")
-    DefineScalarExpression("vort_mag","magnitude(vort)")
+                            args=["x","y","z","vx","vy","vz"])
     AddPlot("Pseudocolor","vort_mag")
     DrawPlots()
 

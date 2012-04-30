@@ -113,7 +113,10 @@ __kernel void  vorticity_3d(__constant const int *d,
          dw.z *= .5;
      }
 
-     o[gid*3]   = dw.y - dv.z;
-     o[gid*3+1] = du.z - dw.x;  
-     o[gid*3+2] = dv.x - du.y;
+     float4 vort = (float4) (dw.y - dv.z,du.z - dw.x,dv.x - du.y,0.0);
+     vort *= vort;
+     o[gid] = sqrt(vort.x + vort.y + vort.z);
+     //o[gid*3]   = dw.y - dv.z;
+     //o[gid*3+1] = du.z - dw.x;
+     //o[gid*3+2] = dv.x - du.y;
 }

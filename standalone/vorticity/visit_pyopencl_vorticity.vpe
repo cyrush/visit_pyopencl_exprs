@@ -13,7 +13,7 @@ class PyOpenCLVorticity(SimplePythonExpression):
         self.name = "PyOpenCLVorticity"
         self.description = "PyOpenCLVorticity"
         self.output_is_point_var = False
-        self.output_dimension = 3
+        self.output_dimension = 1
         self.ctx   = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx)
         self.prog  = cl.Program(self.ctx,open("cl/vorticity_3d.cl").read()).build()
@@ -22,7 +22,7 @@ class PyOpenCLVorticity(SimplePythonExpression):
         print self.input_var_names
         ncells = ds_in.GetNumberOfCells()
         res = vtk.vtkFloatArray()
-        res.SetNumberOfComponents(3)
+        res.SetNumberOfComponents(1)
         res.SetNumberOfTuples(ncells)
         cl_data = ds_in.GetCellData()
         pt_data = ds_in.GetPointData()
