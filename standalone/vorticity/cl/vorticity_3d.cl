@@ -2,7 +2,7 @@
 // vorticity_3d.cl
 //
 
-__kernel void  vorticity_3d(__global const int   *d,
+__kernel void  vorticity_3d(__constant const int *d,
                             __global const float *x,
                             __global const float *y,
                             __global const float *z,
