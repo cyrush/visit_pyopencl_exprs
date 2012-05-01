@@ -4,6 +4,7 @@
 
 import numpy as npy
 import pyopencl as cl
+import time
 # used to convert between vtk & numpy
 import vtk.util.numpy_support as vnp
 
@@ -15,11 +16,10 @@ class PyOpenCLVorticity(SimplePythonExpression):
         self.output_is_point_var = False
         self.output_dimension = 1
         self.ctx   = cl.create_some_context()
-        self.queue = cl.CommandQueue(self.ctx)
+        self.queue = cl.CommandQueue(self.ctx,properties=cl.command_queue_properties.PROFILING_ENABLE)
         self.prog  = cl.Program(self.ctx,open("cl/vorticity_3d.cl").read()).build()
     def derive_variable(self,ds_in,domain_id):
-        print "derive_variable"
-        print self.input_var_names
+        start = time.clock()
         ncells = ds_in.GetNumberOfCells()
         res = vtk.vtkFloatArray()
         res.SetNumberOfComponents(1)
@@ -36,6 +36,8 @@ class PyOpenCLVorticity(SimplePythonExpression):
         o = vnp.vtk_to_numpy(res)
         self.__exec_3d(dims,x,y,z,u,v,w,o)
         print res
+        stop = time.clock()
+        print "Exec time = ", str((stop - start))
         return res
     def __exec_3d(self,dims,x,y,z,u,v,w,out):
         print "shapes:"
@@ -57,7 +59,12 @@ class PyOpenCLVorticity(SimplePythonExpression):
         v_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=v)
         w_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=w)
         dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
-        self.prog.vorticity_3d(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
+        event = self.prog.vorticity_3d(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
         cl.enqueue_copy(self.queue, out, dest_buf)
+        event.wait()
+        elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
+                          event.get_profiling_info( cl.profiling_info.START))
+        print("Execution time: %g s" % elapsed)
+
  
 py_filter = PyOpenCLVorticity

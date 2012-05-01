@@ -22,10 +22,11 @@ def exe_3d(db):
     DrawPlots()
 
 def main():
-    exe_3d("../../rt3d_small_chunk.silo")
+    #exe_3d("../../rt3d_small_chunk.silo")
+    exe_3d("../../rt3d_one_chunk.silo")
 
-        
+
 if __visit_script_file__ == __visit_source_file__:
     main()
 
-    
+
