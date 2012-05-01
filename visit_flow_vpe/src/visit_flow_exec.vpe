@@ -56,6 +56,7 @@ class FlowExecExpr(SimplePythonExpression):
         if w.has_context("root"):
             ctx = w.get_context("root")
             if ctx.context_type.count("compile") > 0:
+                ctx.set_output_shape((ncells,))
                 if mpicom.rank() == 0:
                     print ctx.compile()
                     r = ctx.run()

@@ -32,22 +32,36 @@ class PyOpenCLCompileContext(Context):
         self.kernels = {}
         self.stmts   = []
         self.inputs  = []
+        self.out_shape = None
     def bind_data(self,obj):
         idx = len(self.inputs)
         self.inputs.append(obj)
-        return "in_%04d[gid]" % idx
-    def add_call(self,kernel_name,kernel_source,args):
+        base = "in_%04d" %idx
+        return ("%s_fetch" % base, base)
+    def set_output_shape(self,shape):
+        self.out_shape = shape
+    def add_call(self,kernel_name,
+                      kernel_source,
+                      args,
+                      in_types = None,
+                      out_type = "float"):
         idx = len(self.stmts)
         if not kernel_name in self.kernels.keys():
             self.kernels[kernel_name] = kernel_source
         res_name  = "_auto_res_%04d" % idx
         stmt = "%s(" % kernel_name
-        for arg in args:
-            stmt += "%s," % arg
+        if in_types is None:
+            in_types = ["fetch"]*len(args)
+        for idx in range(len(args)):
+            arg = args[idx]
+            if in_types[idx] == "fetch":
+                stmt += "%s," % arg[0]
+            else:
+                stmt += "%s," % arg[1]
         stmt = stmt[:-1] + ")"
-        stmt = "float %s = %s;" % (res_name,stmt)
+        stmt = "%s %s = %s;" % (out_type,res_name,stmt)
         self.stmts.append(stmt)
-        return res_name
+        return (res_name,None)
     def compile(self):
         res = ""
         for kern in self.kernels.values():
@@ -56,11 +70,22 @@ class PyOpenCLCompileContext(Context):
         args_ident = "                               "
         res += "\n%s__kernel void kmain(" % ident
         for idx in range(len(self.inputs)):
+            if self.inputs[idx].dtype == npy.int32:
+                itype = "int  "
+            else:
+                itype = "float"
             iname = "in_%04d" % idx
-            res  += "__global const float *%s,\n%s" % (iname,args_ident)
-        res += "__global float *out)\n"
+            res  += "__global const %s *%s,\n%s " % (itype,iname,args_ident)
+        res += " __global float *out)\n"
         res += "%s{\n" % ident
         res += "%s int gid = get_global_id(0);\n" % ident
+        for idx in range(len(self.inputs)):
+            if self.inputs[idx].dtype == npy.int32:
+                itype = "int  "
+            else:
+                itype = "float"
+            iname = "in_%04d" % idx
+            res += "%s %s %s_fetch = %s[gid];\n" % (ident,itype,iname,iname)
         for stmt in self.stmts:
             res += "%s %s\n" % (ident,stmt)
         res += "%s out[gid] = _auto_res_%04d;\n" % (ident,len(self.stmts)-1)
@@ -81,7 +106,7 @@ class PyOpenCLCompileContext(Context):
         for ipt in inputs:
             buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
             buffers.append(buf)
-        res = npy.zeros(inputs[0].shape,dtype=npy.float32)
+        res = npy.zeros(self.out_shape,dtype=npy.float32)
         dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(ctx,kernel_source).build()
@@ -354,6 +379,123 @@ class PyOpenCLCompileSqrt(Filter):
             """
         return self.context.add_call("ksqrt",kernel_source,args)
 
+class PyOpenCLCompileArrayDecompose(Filter):
+    filter_type    = "decompose"
+    input_ports    = ["in"]
+    default_params = {"index":0}
+    output_port    = True
+    def execute(self):
+        p = self.params
+        a = self.input("in")
+        return ("%s.s%d" % (a[0],p.index), None)
+
+class PyOpenCLCompileGrad3D(Filter):
+    filter_type    = "grad"
+    input_ports    = ["dims","x","y","z","in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        args = [self.input("in"),
+                self.input("dims"),
+                self.input("x"),
+                self.input("y"),
+                self.input("z")]
+        kernel_source =  """
+            float4 kgrad3d(__global const float *v,
+                           __global const int   *d,
+                           __global const float *x,
+                           __global const float *y,
+                           __global const float *z)
+            {
+                int gid = get_global_id(0);
+
+                int di = d[0]-1;
+                int dj = d[1]-1;
+                int dk = d[2]-1;
+
+                int zi = gid % di;
+                int zj = (gid / di) % dj;
+                int zk = (gid / di) / dj;
+
+                // for rectilinear, we only need 2 points to get dx,dy,dz
+                int pi0 = zi + zj*(di+1) + zk*(di+1)*(dj+1);
+                int pi1 = zi + 1 + (zj+1)*(di+1) + (zk+1)*(di+1)*(dj+1);
+
+                float vv = v[gid];
+                float4 p_0 = (float4)(x[pi0],y[pi0],z[pi0],1.0);
+                float4 p_1 = (float4)(x[pi1],y[pi1],z[pi1],1.0);
+                float4 dg  = p_1 - p_0;
+
+                // value
+                float4 f_0 = (float4)(vv,vv,vv,1.0);
+                float4 f_1 = (float4)(vv,vv,vv,1.0);
+
+                // i bounds
+                if(zi > 0)
+                {
+                    f_0.x = v[gid-1];
+                }
+
+                if(zi < (di-1))
+                {
+                    f_1.x = v[gid+1];
+                }
+
+                // j bounds
+                if(zj > 0)
+                {
+                    f_0.y = v[gid-di];
+                }
+
+                if(zj < (dj-1))
+                {
+                    f_1.y = v[gid+di];
+                }
+
+                // k bounds
+                if(zk > 0)
+                {
+                    f_0.z = v[gid-(di*dj)];
+                }
+
+                if(zk < (dk-1))
+                {
+                    f_1.z = v[gid+(di*dj)];
+                }
+
+                float4 df = (f_1 - f_0) / dg;
+
+                // central diff if we aren't on the edges
+                if( (zi != 0) && (zi != (di-1)))
+                {
+                    df.x *= .5;
+                }
+
+                // central diff if we aren't on the edges
+                if( (zj != 0) && (zj != (dj-1)))
+                {
+                    df.y *= .5;
+                }
+
+                // central diff if we aren't on the edges
+                if( (zk != 0) && (zk != (dk-1)))
+                {
+                    df.z *= .5;
+                }
+                //return (float4)(1.0,2.0,3.0,0.0);
+                return df;
+            }
+            """
+        return self.context.add_call("kgrad3d",
+                                     kernel_source,
+                                     args,
+                                     in_types = ["direct",
+                                                 "direct",
+                                                 "direct",
+                                                 "direct",
+                                                 "direct"],
+                                     out_type = "float4")
+
 filters = [PyOpenCLCompileSource,
            PyOpenCLCompileAdd,
            PyOpenCLCompileSub,
@@ -373,6 +515,8 @@ filters = [PyOpenCLCompileSource,
            PyOpenCLCompileId,
            PyOpenCLCompileRound,
            PyOpenCLCompileSquare,
-           PyOpenCLCompileSqrt]
+           PyOpenCLCompileSqrt,
+           PyOpenCLCompileArrayDecompose,
+           PyOpenCLCompileGrad3D]
 
 contexts = [PyOpenCLCompileContext]

@@ -13,7 +13,7 @@
 
 
 from flow import *
-from flow.filters import *
+from flow.filters import pyocl_compile
 
 
 def setup_workspace():
@@ -27,11 +27,11 @@ def setup_workspace():
     ctx.add_filter("mult","f4")
     ctx.add_filter("add","f5")
     # f1 = src_a + src_b
-    ctx.connect(":d","f1:in_a")
-    ctx.connect(":p","f1:in_b")
+    ctx.connect(":vx","f1:in_a")
+    ctx.connect(":vy","f1:in_b")
     # f2 = src_b - src_a
-    ctx.connect(":d","f2:in_a")
-    ctx.connect(":p","f2:in_b")
+    ctx.connect(":vx","f2:in_a")
+    ctx.connect(":vy","f2:in_b")
     # f3 = f1^2
     ctx.connect("f1","f3:in_a")
     ctx.connect("f1","f3:in_b")
