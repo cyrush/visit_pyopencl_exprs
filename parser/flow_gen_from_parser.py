@@ -175,11 +175,12 @@ if __name__ == "__main__":
         
         # parse input expression
         # gives an error -- is this because of format of parser output?
-        #parsed_expr = parse(expr)
+        parsed_expr = parse(expr)
+        print parsed_expr
         # can test with these instead
         #parsed_expr = "+([a, b])"
         #parsed_expr = "+([a([const(2), const(3)]), ^([b, +([const(3), *([const(4), var])])])])"
-        parsed_expr = "grad([vx,dims,x,y,z])"
+        #parsed_expr = "grad([vx,dims,x,y,z])"
         
         # generate flow network from parsed expression
         create_flow_network(parsed_expr , filter_id)
