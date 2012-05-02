@@ -40,7 +40,7 @@ class FuncCall(object):
         self.name = name
         self.args = args
     def __str__(self):
-        if args is None:
+        if self.args is None:
             return "%s()" % (self.name)
         else:
             return "%s(%s)" % (self.name, str(self.args))

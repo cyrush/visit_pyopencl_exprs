@@ -169,24 +169,21 @@ if __name__ == "__main__":
         sys.exit("Usage: python flow_gen_from_parser.py expr")
     else:
         expr = sys.argv[1]
-        
         # initialize flow network code
         gen_code = init_flow_code()
-        
         # parse input expression
         # gives an error -- is this because of format of parser output?
         parsed_expr = parse(expr)
-        print parsed_expr
+        print "parsed_expr = ", parsed_expr
         # can test with these instead
         #parsed_expr = "+([a, b])"
         #parsed_expr = "+([a([const(2), const(3)]), ^([b, +([const(3), *([const(4), var])])])])"
         #parsed_expr = "grad([vx,dims,x,y,z])"
-        
+
         # generate flow network from parsed expression
         create_flow_network(parsed_expr , filter_id)
 
         # complete flow network code
         complete_flow_code()
-        
         # print full code to a new Python script
         print_to_file(gen_code)
