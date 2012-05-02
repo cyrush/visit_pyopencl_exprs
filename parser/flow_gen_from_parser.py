@@ -38,11 +38,12 @@ def init_flow_code():
     global gen_code
     gen_code += "import numpy as npy\n"
     gen_code += "from flow import *\n"
-    gen_code += "from flow.filters import *\n\n"
-    gen_code += "def main():\n"
-    gen_code += "\tw = Workspace()\n"
-    gen_code += "\tw.register_filters(npy_ops)\n"
-    gen_code += "\tctx  = w.add_context(\"pyocl_compile\",\"root\")\n"
+    gen_code += "from flow.filters import pyocl_ops, pyocl_compile\n\n"
+    gen_code += "def setup_workspace():\n"
+    gen_code += "    w = Workspace()\n"
+    gen_code += "    w.register_filters(pyocl_compile)\n"
+    gen_code += "    ctx  = w.add_context(\"pyocl_compile\",\"root\")\n"
+    gen_code += "    ctx.start()\n"
     return gen_code
 
 def create_numpy_data_array(data_id):
@@ -53,7 +54,7 @@ def create_numpy_data_array(data_id):
        code: Generated code to append to.
     """
     global gen_code
-    gen_code += "\tv_" + str(data_id) + " = npy.array(range(10),dtype=npy.float32)\n"
+    gen_code += "    v_" + str(data_id) + " = npy.array(range(10),dtype=npy.float32)\n"
 
 def add_data_source(data_id):
     """ Create a data source in the flow network.
@@ -62,7 +63,7 @@ def add_data_source(data_id):
        data_id: Name of input data array.
     """
     global gen_code
-    gen_code += "\tctx.registry_add(\":src_" + str(data_id) + "\",v_" + str(data_id) + ")\n"
+    gen_code += "    ctx.registry_add(\":src_" + str(data_id) + "\",v_" + str(data_id) + ")\n"
 
 def add_filter(op, op_id):
     """ Create a filter corresponding to an operation to the flow network.
@@ -72,7 +73,7 @@ def add_filter(op, op_id):
        op_id: Id of operation to be added to flow network.
     """
     global gen_code
-    gen_code += "\tctx.add_filter(\"" + str(op) + "\", \"f" + str(op_id) + "\")\n"
+    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"f" + str(op_id) + "\")\n"
 
 def connect_filter(op, op_id, data_list):
     """ Connect data sources and filter in flow network.
@@ -85,18 +86,13 @@ def connect_filter(op, op_id, data_list):
     global gen_code
     for i in range(len(data_list)):
         # TODO: adjust data source naming here -- could be of form src_x or f1...
-        gen_code += "\tctx.connect(\"src:" + str(data_list[i]) + "\",\"f" + str(op_id) + ":in_" + str(data_list[i]) + "\")\n"
+        gen_code += "    ctx.connect(\":" + str(data_list[i]) + "\",(\"f" + str(op_id) + "\",%d)" % i + ")\n"
 
 def complete_flow_code():
     """ Add remaining lines of code.
     """
     global gen_code
-    gen_code += "\tprint \"Generated Kernel:\"\n"
-    gen_code += "\tw.execute()\n"
-    gen_code += "\tprint ctx.compile()\n"
-    gen_code += "\tprint ctx.run()\n\n"
-    gen_code += "if __name__ == \"__main__\":\n"
-    gen_code += "\tmain()\n"
+    gen_code += "    return w;\n"
 
 def create_flow_network(parser_output, filter_id):
     """ Generates flow network code for data sources and filters from parser output.
@@ -128,9 +124,9 @@ def create_flow_network(parser_output, filter_id):
         # now append commands to generated code
         
         # data source(s)
-        for i in range(len(args_list)):
-            create_numpy_data_array(str(args_list[i]))
-            add_data_source(str(args_list[i]))
+        #for i in range(len(args_list)):
+        #    create_numpy_data_array(str(args_list[i]))
+        #    add_data_source(str(args_list[i]))
         # filter
         add_filter(str(op), filter_id)
         # connect filter and data source(s)
@@ -181,11 +177,12 @@ if __name__ == "__main__":
         # gives an error -- is this because of format of parser output?
         #parsed_expr = parse(expr)
         # can test with these instead
-        parsed_expr = "+([a, b])"
+        #parsed_expr = "+([a, b])"
         #parsed_expr = "+([a([const(2), const(3)]), ^([b, +([const(3), *([const(4), var])])])])"
+        parsed_expr = "grad([vx,dims,x,y,z])"
         
         # generate flow network from parsed expression
-        create_flow_network(parsed_expr, filter_id)
+        create_flow_network(parsed_expr , filter_id)
 
         # complete flow network code
         complete_flow_code()

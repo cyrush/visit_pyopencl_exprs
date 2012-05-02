@@ -157,6 +157,8 @@ class FilterGraph(object):
         """
         src_node = self.nodes[src_name]
         des_node = self.nodes[des_name]
+        if isinstance(port_name,int):
+            port_name = des_node.input_ports[port_name]
         if not port_name in des_node.input_ports:
             raise InvalidInputPortError(src_name,des_name,port_name)
         if not src_node.output_port:

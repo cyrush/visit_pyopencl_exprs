@@ -40,6 +40,12 @@ class PyOpenCLCompileContext(Context):
         return ("%s_fetch" % base, base)
     def set_output_shape(self,shape):
         self.out_shape = shape
+    def add_decompose(self,var,out_type = "float"):
+        idx = len(self.stmts)
+        res_name  = "_auto_res_%04d" % idx
+        stmt = "%s %s = %s;" % (out_type,res_name,var)
+        self.stmts.append(stmt)
+        return (res_name,None)
     def add_call(self,kernel_name,
                       kernel_source,
                       args,
@@ -391,6 +397,8 @@ class PyOpenCLCompileArrayDecompose(Filter):
     def execute(self):
         p = self.params
         a = self.input("in")
+        res = ("%s.s%d" % (a[0],p.index), None)
+        self.context.add_decompose(res[0])
         return ("%s.s%d" % (a[0],p.index), None)
 
 class PyOpenCLCompileGrad3D(Filter):

@@ -21,15 +21,18 @@ def setup_workspace():
     w.register_filters(pyocl_compile)
     ctx = w.add_context("pyocl_compile","root")
     ctx.start()
-    ctx.add_filter("decompose","dudx",{"index":0})
+    # u = x comp
+    #ctx.add_filter("decompose","dudx",{"index":0})
     ctx.add_filter("decompose","dudy",{"index":1})
     ctx.add_filter("decompose","dudz",{"index":2})
+    # v = y comp
     ctx.add_filter("decompose","dvdx",{"index":0})
-    ctx.add_filter("decompose","dvdy",{"index":1})
+    #ctx.add_filter("decompose","dvdy",{"index":1})
     ctx.add_filter("decompose","dvdz",{"index":2})
+    # w = z comp
     ctx.add_filter("decompose","dwdx",{"index":0})
     ctx.add_filter("decompose","dwdy",{"index":1})
-    ctx.add_filter("decompose","dwdz",{"index":2})
+    #ctx.add_filter("decompose","dwdz",{"index":2})
     ctx.add_filter("grad","du")
     ctx.add_filter("grad","dv")
     ctx.add_filter("grad","dw")
