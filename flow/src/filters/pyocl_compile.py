@@ -110,8 +110,12 @@ class PyOpenCLCompileContext(Context):
         dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(ctx,kernel_source).build()
-        prg.kmain(queue, res.shape, None, *buffers)
+        event = prg.kmain(queue, res.shape, None, *buffers)
+        event.wait()
         cl.enqueue_copy(queue, res, dest_buf)
+        elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
+                          event.get_profiling_info( cl.profiling_info.START))
+        print("Execution time: %g s" % elapsed)
         return res
 
 
