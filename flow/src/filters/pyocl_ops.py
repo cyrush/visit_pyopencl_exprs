@@ -28,9 +28,8 @@ def info(msg):
 
 class PyOpenCLContext(Context):
     context_type = "pyocl_ops"
-    def start(self):
-        """ Start context"""
-        pass
+    def start(self,dev_id = 0):
+        pyocl_context.set_device_id(dev_id)
     def execute_kernel(self,kernel_source,inputs,out_dim=None):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"

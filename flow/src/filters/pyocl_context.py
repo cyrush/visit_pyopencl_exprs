@@ -27,14 +27,18 @@ def info(msg):
     log.info(msg,"pyocl_context")
 
 class PyOpenCLContextManager(object):
-    ctx = None
+    dev_id = 0
+    ctx    = None
+    @classmethod
+    def set_device_id(cls,dev_id):
+        cls.dev_id = dev_id
     @classmethod
     def instance(cls):
         if not found_pyopencl:
             return None
         if cls.ctx is None:
             platform = cl.get_platforms()[0]
-            device   = platform.get_devices()[0]
+            device   = platform.get_devices()[cls.dev_id]
             info("Platform name: %s" % platform.name)
             info("Platform profile: %s" % platform.profile)
             info("Platform vendor: %s" % platform.vendor)
@@ -45,8 +49,11 @@ class PyOpenCLContextManager(object):
             info("Device max clock speed: %s MHz" % device.max_clock_frequency)
             info("Device compute units: %s" % device.max_compute_units)
             cls.ctx = cl.Context([device])
-            #cls.ctx = cl.create_some_context(interactive=False)
         return cls.ctx
+
+def set_device_id(idx):
+    PyOpenCLContextManager.set_device_id(idx)
 
 def instance():
     return PyOpenCLContextManager.instance()
+

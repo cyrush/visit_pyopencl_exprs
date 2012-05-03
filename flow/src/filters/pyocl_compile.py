@@ -28,11 +28,12 @@ def info(msg):
 
 class PyOpenCLCompileContext(Context):
     context_type = "pyocl_compile"
-    def start(self):
+    def start(self,dev_id = 0):
         self.kernels = {}
         self.stmts   = []
         self.inputs  = []
         self.out_shape = None
+        pyocl_context.set_device_id(dev_id)
     def bind_data(self,obj):
         idx = len(self.inputs)
         self.inputs.append(obj)
