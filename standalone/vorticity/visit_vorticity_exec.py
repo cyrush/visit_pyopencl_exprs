@@ -11,7 +11,7 @@
 
 """
 import visit
-import time
+
 def exe_3d(db):
     OpenDatabase(db)
     DefineVectorExpression("du","gradient(vx)")
@@ -22,10 +22,7 @@ def exe_3d(db):
     DefineScalarExpression("vort_z","dv[0] - du[1]")
     DefineScalarExpression("vort_mag","sqrt(vort_x*vort_x + vort_y*vort_y + vort_z*vort_z)")
     AddPlot("Pseudocolor","vort_mag")
-    start = time.time()
     DrawPlots()
-    stop  = time.time()
-    print "DrawPlots time = ", str((stop - start))
     if "-nowin" in sys.argv:
         sys.exit(0)
 

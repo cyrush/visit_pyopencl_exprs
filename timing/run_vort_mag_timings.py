@@ -77,9 +77,9 @@ def exe_gpu_auto(idx,rdirs,test_file):
     sexe(cmd)
 
 def exe_single(test_file,idx,rdirs):
-    #exe_gpu_hand(idx,rdirs,test_file)
+    exe_gpu_hand(idx,rdirs,test_file)
     exe_cpu(idx,rdirs,test_file)
-    #exe_gpu_auto(idx,rdirs,test_file)
+    exe_gpu_auto(idx,rdirs,test_file)
 
 def timing_summary(rdirs):
     for k,v in rdirs.items():
@@ -113,11 +113,14 @@ def fetch_timing_info(f):
 
 if __name__ == "__main__":
     ntests = 1
-    test_file ="/g/g24/cyrush/work/visit_pyopencl_exprs/rt3d_small_chunk.silo"
-    #test_file ="/p/lscratchb/cyrush/rt3d_col_mix_export/single_large_test_with_coords.silo"
+    test_file =pjoin(sdir,"..","rt3d_small_chunk.silo")
+    test_file =pjoin(sdir,"..","rt3d_one_chunk.silo")
+    test_file =pjoin(sdir,"..","single_large_test_with_coords.silo")
     args = sys.argv
     if len(args) > 1:
         ntests = int(args[1])
+    if len(args) > 2:
+        test_file = os.path.abspath(args[2])
     setup_python_path()
     rdirs = prep_results_dir()
     print "[executing %d timing runs]" % ntests

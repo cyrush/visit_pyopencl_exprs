@@ -107,7 +107,8 @@ class PyOpenCLCompileContext(Context):
         msg  = "Execute Kernel:\n"
         msg += kernel_source
         info(msg)
-        queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
+        #queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
+        queue = cl.CommandQueue(ctx)
         mf    = cl.mem_flags
         buffers = []
         for ipt in inputs:
@@ -117,12 +118,13 @@ class PyOpenCLCompileContext(Context):
         dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(ctx,kernel_source).build()
-        event = prg.kmain(queue, res.shape, None, *buffers)
-        event.wait()
+        prg.kmain(queue, res.shape, None, *buffers)
+        #event = prg.kmain(queue, res.shape, None, *buffers)
+        #event.wait()
         cl.enqueue_copy(queue, res, dest_buf)
-        elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
-                          event.get_profiling_info( cl.profiling_info.START))
-        print("Execution time: %g s" % elapsed)
+        #elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
+        #                  event.get_profiling_info( cl.profiling_info.START))
+        #print("Execution time: %g s" % elapsed)
         return res
 
 

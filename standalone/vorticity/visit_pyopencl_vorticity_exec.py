@@ -11,7 +11,6 @@
 
 """
 import visit
-import time
 import os
 from os.path import join as pjoin
 
@@ -24,10 +23,7 @@ def exe_3d(db):
                             source="PythonFilter.load('%s')\n" % fvpe,
                             args=["x","y","z","vx","vy","vz",'"%s"' % sdir])
     AddPlot("Pseudocolor","vort_mag")
-    start = time.time()
     DrawPlots()
-    stop  = time.time()
-    print "DrawPlots time = ", str((stop - start))
     if "-nowin" in sys.argv:
         sys.exit(0)
 
