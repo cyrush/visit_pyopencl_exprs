@@ -81,7 +81,6 @@ def setup_workspace():
     w.connect("vort_add_1","vort_add:in_a")
     w.connect("vort_z_sq","vort_add:in_b")
     w.connect("vort_add","vort_sqrt:in")
-    print str(w.execution_plan())
     return w
-    
+
 

@@ -50,7 +50,6 @@ def setup_workspace():
     ctx.connect("v_add_1","v_add:in_a")
     ctx.connect("vz_sq","v_add:in_b")
     ctx.connect("v_add","v_sqrt:in")
-    print str(w.execution_plan())
     return w
 
 

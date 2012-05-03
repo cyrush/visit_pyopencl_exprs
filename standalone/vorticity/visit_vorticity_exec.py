@@ -11,7 +11,7 @@
 
 """
 import visit
-
+import time
 def exe_3d(db):
     OpenDatabase(db)
     DefineVectorExpression("du","gradient(vx)")
@@ -22,14 +22,22 @@ def exe_3d(db):
     DefineScalarExpression("vort_z","dv[0] - du[1]")
     DefineScalarExpression("vort_mag","sqrt(vort_x*vort_x + vort_y*vort_y + vort_z*vort_z)")
     AddPlot("Pseudocolor","vort_mag")
+    start = time.time()
     DrawPlots()
+    stop  = time.time()
+    print "DrawPlots time = ", str((stop - start))
 
-def main():
+def main(db):
     #exe_3d("../../rt3d_small_chunk.silo")
-    exe_3d("../../rt3d_one_chunk.silo")
+    exe_3d(db)
 
 
 if __visit_script_file__ == __visit_source_file__:
-    main()
+    args = Argv()
+    db = "../../rt3d_one_chunk.silo"
+    if len(args) > 0:
+        db = args[0]
+    main(db)
+
 
     

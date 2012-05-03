@@ -11,7 +11,7 @@
 
 """
 import visit
-
+import time
 def exe_3d(db):
     OpenDatabase(db)
     fvpe = "visit_pyopencl_vorticity.vpe"
@@ -19,14 +19,21 @@ def exe_3d(db):
                             source="PythonFilter.load('%s')\n" % fvpe,
                             args=["x","y","z","vx","vy","vz"])
     AddPlot("Pseudocolor","vort_mag")
+    start = time.time()
     DrawPlots()
+    stop  = time.time()
+    print "DrawPlots time = ", str((stop - start))
 
-def main():
-    #exe_3d("../../rt3d_small_chunk.silo")
-    exe_3d("../../rt3d_one_chunk.silo")
+
+def main(db):
+    exe_3d(db)
 
 
 if __visit_script_file__ == __visit_source_file__:
-    main()
+    args = Argv()
+    db = "../../rt3d_one_chunk.silo"
+    if len(args) > 0:
+        db = args[0]
+    main(db)
 
 

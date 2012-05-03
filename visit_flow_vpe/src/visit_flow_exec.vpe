@@ -27,7 +27,7 @@ class FlowExecExpr(SimplePythonExpression):
         self.output_dimension = 1
     def derive_variable(self,ds_in,domain_id):
         # get workspace
-        start = time.clock()
+        start = time.time()
         wstype = self.arguments[0]
         if wstype == "src":
             w = Workspace.load_workspace_script(src=self.arguments[1])
@@ -51,6 +51,7 @@ class FlowExecExpr(SimplePythonExpression):
             vdata = vnp.vtk_to_numpy(vdata)
             w.registry_add(":" + var,vdata)
         # exec filter graph (returns last registry entry obj)
+        print w.execution_plan()
         r = w.execute()
         # check the active context to see if
         # are using npy_compile or pyocl_compile
@@ -63,8 +64,8 @@ class FlowExecExpr(SimplePythonExpression):
                     r = ctx.run()
         # set result (results in a numpy data copy)
         out[:] = r
-        stop = time.clock()
-        print "Exec time = ", str((stop - start))
+        stop = time.time()
+        print "FlowExecExpr:derive_variable time = ", str((stop - start))
         return res
 
 py_filter = FlowExecExpr
