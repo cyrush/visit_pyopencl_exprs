@@ -26,6 +26,8 @@ def exe_3d(db):
     DrawPlots()
     stop  = time.time()
     print "DrawPlots time = ", str((stop - start))
+    if "-nowin" in sys.argv:
+        sys.exit(0)
 
 def main(db):
     #exe_3d("../../rt3d_small_chunk.silo")

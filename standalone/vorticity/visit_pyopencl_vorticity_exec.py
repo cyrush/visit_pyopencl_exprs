@@ -12,17 +12,24 @@
 """
 import visit
 import time
+import os
+from os.path import join as pjoin
+
+sdir = os.path.split(os.path.abspath(__visit_script_file__))[0]
+
 def exe_3d(db):
     OpenDatabase(db)
-    fvpe = "visit_pyopencl_vorticity.vpe"
+    fvpe = pjoin(sdir,"visit_pyopencl_vorticity.vpe") 
     DefinePythonExpression("vort_mag",
                             source="PythonFilter.load('%s')\n" % fvpe,
-                            args=["x","y","z","vx","vy","vz"])
+                            args=["x","y","z","vx","vy","vz",'"%s"' % sdir])
     AddPlot("Pseudocolor","vort_mag")
     start = time.time()
     DrawPlots()
     stop  = time.time()
     print "DrawPlots time = ", str((stop - start))
+    if "-nowin" in sys.argv:
+        sys.exit(0)
 
 
 def main(db):

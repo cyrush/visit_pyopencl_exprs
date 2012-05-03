@@ -15,9 +15,11 @@ class PyOpenCLVorticity(SimplePythonExpression):
         self.description = "PyOpenCLVorticity"
         self.output_is_point_var = False
         self.output_dimension = 1
+        spath = self.arguments[-1]
         self.ctx   = cl.create_some_context()
         self.queue = cl.CommandQueue(self.ctx,properties=cl.command_queue_properties.PROFILING_ENABLE)
-        self.prog  = cl.Program(self.ctx,open("cl/vorticity_3d.cl").read()).build()
+        spath = pjoin(spath,"cl","vorticity_3d.cl")
+        self.prog  = cl.Program(self.ctx,open(spath).read()).build()
     def derive_variable(self,ds_in,domain_id):
         start = time.clock()
         ncells = ds_in.GetNumberOfCells()

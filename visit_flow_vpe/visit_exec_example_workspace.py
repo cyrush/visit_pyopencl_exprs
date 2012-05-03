@@ -30,3 +30,7 @@ def main():
 
 if __visit_script_file__ == __visit_source_file__:
     main()
+    if "-nowin" in sys.argv:
+        sys.exit(0)
+
+
