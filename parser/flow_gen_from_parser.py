@@ -25,7 +25,7 @@ def print_to_file(code):
     """ Prints generated flow code to a new Python script.
     
     Arg:
-       new_code: String containing generated code.
+       code: String containing generated code.
     """
     output = open('test.py', 'w')
     output.write(code)
