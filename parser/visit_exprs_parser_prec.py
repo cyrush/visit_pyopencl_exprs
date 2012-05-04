@@ -84,7 +84,8 @@ tokens = ['INT',
           'LBRACKET',
           'RBRACKET',
           'LBRACE',
-          'RBRACE'
+          'RBRACE',
+          'DECOMP'
           ]
 
 t_PLUS   = r'\+'
@@ -185,6 +186,8 @@ def p_expr(t):
          | unary_expr
          | var
          | func
+         | assign
+         | decomp
     """
     t[0] = t[1]
 
@@ -240,6 +243,17 @@ def p_const(t):
     """
     t[0] = Constant(t[1])
 
+def p_assign(t):
+    """
+    assign : ID EQ expr
+    """
+    vars[t[1]] = t[3]
+
+def p_decomp(t):
+    """
+    decomp : expr LBRACKET const RBRACKET
+    """
+    t[0] = FuncCall(t[1], t[3])
 
 def p_args_extend(t):
     """
