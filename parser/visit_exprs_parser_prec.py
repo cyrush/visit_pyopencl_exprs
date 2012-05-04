@@ -253,7 +253,7 @@ def p_decomp(t):
     """
     decomp : expr LBRACKET const RBRACKET
     """
-    t[0] = FuncCall(t[1], t[3])
+    t[0] = FuncCall("decompose",[t[1],t[3]])
 
 def p_args_extend(t):
     """
