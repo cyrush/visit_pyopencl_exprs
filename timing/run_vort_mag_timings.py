@@ -32,6 +32,8 @@ def setup_python_path():
     ppath += flow_dir + ":" + flow_vpe_dir
     print ppath
     os.environ["PYTHONPATH"] = ppath
+    sexe("cd ../flow && visit -noconfig -nowin -cli -s setup.py build;")
+    sexe("cd ../visit_flow_vpe && visit -noconfig -nowin -cli -s setup.py build;")
 
 def prep_results_dir():
     paths = {}
@@ -42,10 +44,12 @@ def prep_results_dir():
     paths["cpu"]  = pjoin(rdir,"cpu.visit")
     paths["hand"] = pjoin(rdir,"gpu.hand.coded")
     paths["auto"] = pjoin(rdir,"gpu.auto.gen")
+    paths["naive"] = pjoin(rdir,"gpu.naive")
     os.mkdir(rdir)
     os.mkdir(paths["cpu"])
     os.mkdir(paths["hand"])
     os.mkdir(paths["auto"])
+    os.mkdir(paths["naive"])
     return paths
 
 def exe_cpu(idx,rdirs,test_file):
@@ -76,10 +80,22 @@ def exe_gpu_auto(idx,rdirs,test_file):
     cmd = "mv *.timings %s" % dest_dir
     sexe(cmd)
 
+
+def exe_gpu_naive(idx,rdirs,test_file):
+    test_script = pjoin(sdir,"..","visit_flow_vpe","visit_exec_example_workspace.py")
+    test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_ops_vort_mag_1.py")
+    cmd = "visit -nowin -timing -cli -s %s %s %s" % (test_script,test_wspace,test_file)
+    sexe(cmd)
+    dest_dir = pjoin(rdirs["naive"],"timing.results.%04d") % idx
+    os.mkdir(dest_dir)
+    cmd = "mv *.timings %s" % dest_dir
+    sexe(cmd)
+
 def exe_single(test_file,idx,rdirs):
     exe_gpu_hand(idx,rdirs,test_file)
     exe_cpu(idx,rdirs,test_file)
     exe_gpu_auto(idx,rdirs,test_file)
+    exe_gpu_naive(idx,rdirs,test_file)
 
 def timing_summary(rdirs):
     for k,v in rdirs.items():
