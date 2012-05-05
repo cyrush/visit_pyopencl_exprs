@@ -35,15 +35,17 @@ sys.path.insert(0,"ply-3.4")
 import ply.lex as lex
 import ply.yacc as yacc
 
+vmaps = {}
+
 class FuncCall(object):
     def __init__(self,name,args=None):
         self.name = name
         self.args = args
     def __str__(self):
         if self.args is None:
-            return "%s()" % (self.name)
+            return "<FuncCallObj>%s()" % (self.name)
         else:
-            return "%s(%s)" % (self.name, str(self.args))
+            return "<FuncCallObj>%s(%s)" % (self.name, str(self.args))
     def __repr__(self):
        return str(self)
 
@@ -247,7 +249,8 @@ def p_assign(t):
     """
     assign : ID EQ expr
     """
-    vars[t[1]] = t[3]
+    vmaps[t[1]] = t[3]
+    t[0] = t[3]
 
 def p_decomp(t):
     """
@@ -278,7 +281,14 @@ def parse(s):
     """
     Main entry point for parsing from outside of this module.
     """
-    return yacc.parse(s)
+    global vmaps
+    vmaps = {}
+    res = yacc.parse(s)
+    print "VMaps = ", vmaps
+    # TODO: return vmaps as well
+    # so it can be used for flow gen
+    #return res, vmaps
+    return res
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
