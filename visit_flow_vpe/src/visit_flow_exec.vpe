@@ -18,7 +18,6 @@ import vtk.util.numpy_support as vnp
 from flow import *
 from flow.filters import pyocl_compile
 
-
 class FlowExecExpr(SimplePythonExpression):
     def __init__(self):
         SimplePythonExpression.__init__(self)
@@ -56,6 +55,8 @@ class FlowExecExpr(SimplePythonExpression):
         # are using npy_compile or pyocl_compile
         if w.has_context("root"):
             ctx = w.get_context("root")
+            if ctx.context_type.count("pyocl")>0:
+                ctx.set_device_id(mpicom.rank() % 2)
             if ctx.context_type.count("compile") > 0:
                 ctx.set_output_shape((ncells,))
                 #if mpicom.rank() == 0:
