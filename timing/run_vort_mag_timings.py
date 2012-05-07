@@ -41,9 +41,12 @@ def setup_python_path():
     sexe("cd ../flow && visit -noconfig -nowin -cli -s setup.py build;")
     sexe("cd ../visit_flow_vpe && visit -noconfig -nowin -cli -s setup.py build;")
 
-def prep_results_dir():
+def prep_results_dir(tag):
+    if tag is None:
+        rdir = os.path.abspath("_timing_results")
+    else:
+        rdir = os.path.abspath("_%s_timing_results" % tag)
     paths = {}
-    rdir = os.path.abspath("_timing_results")
     if os.path.isdir(rdir):
         shutil.rmtree(rdir)
     paths["root"] = rdir 
@@ -58,44 +61,43 @@ def prep_results_dir():
     os.mkdir(paths["naive"])
     return paths
 
-def exe_cpu(idx,rdirs,test_file,nprocs):
-    test_script = pjoin(sdir,"..","standalone","vorticity","visit_vorticity_exec.py")
-    cmd = vcmd(nprocs) + " %s %s" % (test_script,test_file)
-    sexe(cmd)
-    dest_dir = pjoin(rdirs["cpu"],"timing.results.%04d") % idx
+def move_results(dest_dir):
     os.mkdir(dest_dir)
     cmd = "mv *.timings %s" % dest_dir
     sexe(cmd)
+    cmd = "mv chunk*.png %s" % dest_dir
+    sexe(cmd)
+
+
+def exe_cpu(idx,rdirs,test_file,nprocs):
+    test_script = pjoin(sdir,"..","standalone","vorticity","visit_vorticity_exec.py")
+    cmd = vcmd(nprocs) + " %s %s -save" % (test_script,test_file)
+    sexe(cmd)
+    dest_dir = pjoin(rdirs["cpu"],"timing.results.%04d") % idx
+    move_results(dest_dir)
 
 def exe_gpu_hand(idx,rdirs,test_file,nprocs):
     test_script = pjoin(sdir,"..","standalone","vorticity","visit_pyopencl_vorticity_exec.py")
-    cmd = vcmd(nprocs) + " %s %s" % (test_script,test_file)
+    cmd = vcmd(nprocs) + " %s %s -save" % (test_script,test_file)
     sexe(cmd)
     dest_dir = pjoin(rdirs["hand"],"timing.results.%04d") % idx
-    os.mkdir(dest_dir)
-    cmd = "mv *.timings %s" % dest_dir
-    sexe(cmd)
+    move_results(dest_dir)
 
 def exe_gpu_auto(idx,rdirs,test_file,nprocs):
     test_script = pjoin(sdir,"..","visit_flow_vpe","visit_exec_example_workspace.py")
     test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_compile_vort_mag_1.py")
-    cmd = vcmd(nprocs) + " %s %s %s" % (test_script,test_wspace,test_file)
+    cmd = vcmd(nprocs) + " %s %s %s -save" % (test_script,test_wspace,test_file)
     sexe(cmd)
     dest_dir = pjoin(rdirs["auto"],"timing.results.%04d") % idx
-    os.mkdir(dest_dir)
-    cmd = "mv *.timings %s" % dest_dir
-    sexe(cmd)
-
+    move_results(dest_dir)
 
 def exe_gpu_naive(idx,rdirs,test_file,nprocs):
     test_script = pjoin(sdir,"..","visit_flow_vpe","visit_exec_example_workspace.py")
     test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_ops_vort_mag_1.py")
-    cmd = vcmd(nprocs) + " %s %s %s" % (test_script,test_wspace,test_file)
+    cmd = vcmd(nprocs) + " %s %s %s -save" % (test_script,test_wspace,test_file)
     sexe(cmd)
     dest_dir = pjoin(rdirs["naive"],"timing.results.%04d") % idx
-    os.mkdir(dest_dir)
-    cmd = "mv *.timings %s" % dest_dir
-    sexe(cmd)
+    move_results(dest_dir)
 
 def exe_single(test_file,idx,rdirs,nprocs):
     exe_gpu_hand(idx,rdirs,test_file,nprocs)
@@ -139,6 +141,7 @@ def fetch_timing_info(f):
 if __name__ == "__main__":
     ntests = 1
     nprocs = 1
+    tag = None
     test_file =pjoin(sdir,"..","rt3d_small_chunk.silo")
     test_file =pjoin(sdir,"..","rt3d_one_chunk.silo")
     test_file =pjoin(sdir,"..","single_large_test_with_coords.silo")
@@ -149,8 +152,10 @@ if __name__ == "__main__":
         test_file = os.path.abspath(args[2])
     if len(args) > 3:
         nprocs = int(args[3])
+    if len(args) > 4:
+        tag = args[4]
     setup_python_path()
-    rdirs = prep_results_dir()
+    rdirs = prep_results_dir(tag)
     print "[executing %d timing runs]" % ntests
     for idx in xrange(ntests):
         exe_single(test_file,idx,rdirs,nprocs)
