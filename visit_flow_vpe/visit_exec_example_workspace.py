@@ -18,6 +18,10 @@ from os.path import join as pjoin
 from visit_flow_vpe import *
 
 def save_window():
+    visit.ResetView()
+    v = visit.GetView3D()
+    v.RotateAxis(0,-90)
+    visit.SetView3D(v)
     swatts= visit.SaveWindowAttributes()
     swatts.outputToCurrentDirectory = 1
     swatts.outputDirectory = "."
@@ -37,7 +41,7 @@ def save_window():
     swatts.resConstraint = swatts.NoConstraint
     swatts.advancedMultiWindowSave = 0
     visit.SetSaveWindowAttributes(swatts)
-    SaveWindow()
+    visit.SaveWindow()
 
 def main():
     args   = Argv()

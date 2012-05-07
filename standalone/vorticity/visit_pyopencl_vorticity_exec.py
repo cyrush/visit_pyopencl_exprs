@@ -15,6 +15,10 @@ import os
 from os.path import join as pjoin
 
 def save_window():
+    ResetView()
+    v = GetView3D()
+    v.RotateAxis(0,-90)
+    SetView3D(v)
     swatts= SaveWindowAttributes()
     swatts.outputToCurrentDirectory = 1
     swatts.outputDirectory = "."
