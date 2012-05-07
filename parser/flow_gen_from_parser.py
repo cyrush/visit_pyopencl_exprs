@@ -74,7 +74,29 @@ def add_filter(op, filter_id):
     gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"f" + str(filter_id) + "\")\n"
 
 def connect_filter(arg, arg_id, filter_id):
-    """ Connect data source to a filter in flow network.
+    """ Connect data source to a filter in the flow network.
+
+    Args:
+       arg: Input data.
+       arg_id: Input id.
+       filter_id: Id of filter to be added to flow network.
+    """
+    global gen_code
+    gen_code += "    ctx.connect(\":" + str(arg) + "\",(\"f" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+
+def add_decompose_filter(op, filter_id, index):
+    """ Create a filter corresponding to a decomposition in the flow network.
+
+    Args:
+       op: Name of operation to be added to flow network.
+       filter_id: Id of filter to be added to flow network.
+       index: Index used in decomposition.
+    """
+    global gen_code
+    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"f" + str(filter_id) + "\", {\"index\":" + str(index) + "})\n"
+
+def connect_decompose_filter(arg, arg_id, filter_id):
+    """ Connect data source to a decomposition filter in the flow network.
 
     Args:
        arg: Input data.
@@ -85,7 +107,7 @@ def connect_filter(arg, arg_id, filter_id):
     gen_code += "    ctx.connect(\":" + str(arg) + "\",(\"f" + str(filter_id) + "\",%d)" % arg_id + ")\n"
 
 def complete_flow_code():
-    """ Add remaining lines of code.
+    """ Add remaining line(s) of code.
     """
     global gen_code
     gen_code += "    return w;\n"
@@ -104,10 +126,14 @@ def create_flow(parsed_expr):
     filter_id += 1
 
     current_filter_id = filter_id
-    add_filter(parsed_expr.name, filter_id)
+    if (parsed_expr.name == "decompose"):
+        add_decompose_filter(parsed_expr.name, filter_id, parsed_expr.args[1].value)
+    else:
+        add_filter(parsed_expr.name, filter_id)
 
     for i in range(len(parsed_expr.args)):
         if (str(parsed_expr.args[i].__class__.__name__) == "FuncCall"):
+            # add a case here for when filter is decomposition
             connect_filter("f" + str(create_flow(parsed_expr.args[i])), i, current_filter_id)
         elif (str(parsed_expr.args[i].__class__.__name__) == "Id"):
             connect_filter(str(parsed_expr.args[i].name), i, current_filter_id)
