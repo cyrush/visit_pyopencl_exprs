@@ -57,7 +57,7 @@ class PyOpenCLQCrit(SimplePythonExpression):
         v_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=v)
         w_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=w)
         dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
-        self.prog.vorticity_3d(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
+        self.prog.q_criterion(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
         cl.enqueue_copy(self.queue, out, dest_buf)
 
 py_filter = PyOpenCLQCrit

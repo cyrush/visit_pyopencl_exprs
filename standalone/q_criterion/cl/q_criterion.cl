@@ -1,15 +1,15 @@
 //
-// vorticity_3d.cl
+// q_criterion.cl
 //
 
-__kernel void  vorticity_3d(__constant const int *d,
-                            __global const float *x,
-                            __global const float *y,
-                            __global const float *z,
-                            __global const float *u, 
-                            __global const float *v, 
-                            __global const float *w,
-                            __global float *o)
+__kernel void  q_criterion(__constant const int *d,
+                           __global const float *x,
+                           __global const float *y,
+                           __global const float *z,
+                           __global const float *u, 
+                           __global const float *v, 
+                           __global const float *w,
+                           __global float *o)
 {
      int gid = get_global_id(0);
 
