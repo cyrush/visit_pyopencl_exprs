@@ -3,11 +3,11 @@
 # ${disclaimer}
 #
 """
- file: vpe_flow_npy_ops_example_1.py
+ file: vpe_flow_pyocl_ops_example_1.py
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 3/28/2012
  description:
-    vpe flow example demonstrating use of flow.filters.npy_ops.
+    vpe flow example demonstrating use of flow.filters.pyocl_ops.
 
 """
 

@@ -38,6 +38,7 @@ class PyOpenCLContextManager(object):
             return None
         if cls.ctx is None:
             platform = cl.get_platforms()[0]
+            info("Using device id = %d" % cls.dev_id)
             device   = platform.get_devices()[cls.dev_id]
             info("Platform name: %s" % platform.name)
             info("Platform profile: %s" % platform.profile)

@@ -48,15 +48,16 @@ class FlowExecExpr(SimplePythonExpression):
                 raise Exception("flow_vpe error: could not fetch %s" % var)
             vdata = vnp.vtk_to_numpy(vdata)
             w.registry_add(":" + var,vdata)
-        # exec filter graph (returns last registry entry obj)
-        # print w.execution_plan()
-        r = w.execute()
-        # check the active context to see if
-        # are using npy_compile or pyocl_compile
         if w.has_context("root"):
             ctx = w.get_context("root")
             if ctx.context_type.count("pyocl")>0:
                 ctx.set_device_id(mpicom.rank() % 2)
+        # exec filter graph (returns last registry entry obj)
+        # print w.execution_plan()
+        r = w.execute()
+        # check the active context to see if
+        # are using pyocl_compile
+        if w.has_context("root"):
             if ctx.context_type.count("compile") > 0:
                 ctx.set_output_shape((ncells,))
                 #if mpicom.rank() == 0:
