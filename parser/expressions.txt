@@ -1,1 +1,1 @@
-du = (x + y)
+grad(vx, dims, x, y, z)[0]
