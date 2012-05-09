@@ -129,7 +129,9 @@ def exe_single(rtype,test_file,idx,rdirs,nprocs):
     exe_gpu_auto(rtype,idx,rdirs,test_file,nprocs)
     exe_gpu_naive(rtype,idx,rdirs,test_file,nprocs)
 
-def timing_summary(rdirs,nprocs):
+def timing_summary(rdirs,nprocs,ofile = None):
+    if not ofile is None:
+        ofile = open(ofile,"w")
     for k,v in rdirs.items():
         vals = {}
         eefs = []
@@ -139,14 +141,20 @@ def timing_summary(rdirs,nprocs):
         else:
             fs = glob.glob(pjoin(v,"timing.results.*","engine_par.*timings"))
         if len(fs) > 0:
-            print "%s:" % k
+            txt = "%s:\n indiv cases\n" % k
+            print txt
+            if not ofile is None: ofile.write(txt + "\n")
             for f in fs:
                 txt,eef,tot = fetch_timing_info(f)
                 print txt
+                if not ofile is None: ofile.write(txt + "\n")
                 eefs.append(eef)
                 tots.append(tot)
-            print " eef_avg = %s" % str(sum(eefs)/float(len(eefs)))
-            print " tot_avg = %s" % str(sum(tots)/float(len(tots)))
+            eef_avg = "%s: eef_avg = %s" %(k,str(sum(eefs)/float(len(eefs))))
+            tot_avg = "%s: tot_avg = %s" %(k, str(sum(tots)/float(len(tots))))
+            print eef_avg
+            print tot_avg
+            if not ofile is None: ofile.write("\n%s\n%s\n" % (eef_avg,tot_avg))
 
 def fetch_timing_info(f):
     res =""
@@ -181,13 +189,14 @@ if __name__ == "__main__":
         nprocs = int(args[4])
     if len(args) > 5:
         tag = tag  + args[5]
+    ofile = "out." + tag + ".txt" 
     setup_python_path()
     rdirs = prep_results_dir(tag)
     print "[executing %d timing runs]" % ntests
     for idx in xrange(ntests):
         exe_single(rtype,test_file,idx,rdirs,nprocs)
     print "[results]"
-    timing_summary(rdirs,nprocs)
+    timing_summary(rdirs,nprocs,ofile )
 
 
 
