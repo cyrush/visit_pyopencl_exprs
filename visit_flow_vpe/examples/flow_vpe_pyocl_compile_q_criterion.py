@@ -247,10 +247,12 @@ def setup_workspace():
     #
     ctx.connect("s_norm_6","s_norm_7:in_a")
     ctx.connect("s_sq_8","s_norm_7:in_b")
-    ###
+    #
+    #
+    #
     ctx.connect("w_sq_1","w_norm_0:in_a")
     ctx.connect("w_sq_2","w_norm_0:in_b")
-    # #
+    #
     ctx.connect("w_norm_0","w_norm_1:in_a")
     ctx.connect("w_sq_3","w_norm_1:in_b")
     #
@@ -262,20 +264,13 @@ def setup_workspace():
     #
     ctx.connect("w_norm_3","w_norm_4:in_a")
     ctx.connect("w_sq_7","w_norm_4:in_b")
-    
-    #ctx.connect("s_norm_%d" % (i-1),"s_norm_%d:in_a" % i)
-    # ctx.connect("w_sq_1","w_norm_0:in_a")
-    # idx = 0
-    # for i in [2,3,5,6,7]:
-    #     ctx.connect("w_sq_%d" % i ,"w_norm_%d:in_b" % (idx))
-    #     ctx.connect("w_norm_%d" % (idx),"w_norm_%d:in_a" % (idx+1))
-    #     idx+=1
-    # ctx.connect("w_norm_%d" % (idx-1),"final_sub:in_a")
-    ctx.connect("s_norm_7","final_sub:in_a")
-    ctx.connect("w_norm_4","final_sub:in_b")
+    #
+    #
+    #o[gid] = 0.5 * (W_sum - S_sum);
+    ctx.connect("w_norm_4","final_sub:in_a")
+    ctx.connect("s_norm_7","final_sub:in_b")
     ctx.connect("final_sub","final_mult:in_a")
     ctx.connect("half","final_mult:in_b")
-    #o[gid] = 0.5 * (W_sum - S_sum);
     print w.graph.save_dot("qcrit.dot")
     print w.execution_plan()
     return w
