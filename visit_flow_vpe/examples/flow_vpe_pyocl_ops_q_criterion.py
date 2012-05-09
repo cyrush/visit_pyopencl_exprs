@@ -3,7 +3,7 @@
 # ${disclaimer}
 #
 """
- file: vpe_flow_pyocl_compile_q_criterion.py
+ file: vpe_flow_pyocl_ops_q_criterion.py
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 5/8/2012
  description:
@@ -12,13 +12,13 @@
 
 
 from flow import *
-from flow.filters import pyocl_compile
+from flow.filters import pyocl_ops
 
 
 def setup_workspace():
     w = Workspace()
-    w.register_filters(pyocl_compile)
-    ctx = w.add_context("pyocl_compile","root")
+    w.register_filters(pyocl_ops)
+    ctx = w.add_context("pyocl_ops","root")
     ctx.start()
     ctx.add_filter("grad","du")
     ctx.add_filter("grad","dv")

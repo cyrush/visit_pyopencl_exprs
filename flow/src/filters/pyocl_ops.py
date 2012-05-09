@@ -41,13 +41,19 @@ class PyOpenCLContext(Context):
         queue = cl.CommandQueue(ctx)
         mf    = cl.mem_flags
         buffers = []
-        for ipt in inputs:
-            buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
-            buffers.append(buf)
+        vshape = self.__find_valid_shape(inputs)
         if out_dim is None:
-            out_dim = inputs[0].shape
+            out_dim = vshape
         else:
-            out_dim = (inputs[0].shape[0],out_dim)
+            out_dim = (vshape[0],out_dim)
+        for ipt in inputs:
+            if not isinstance(ipt, npy.ndarray): # const case
+                ibf    = npy.zeros(out_dim,dtype=npy.float32)
+                ibf[:] = ipt
+            else:
+                ibf = ipt
+            buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ibf)
+            buffers.append(buf)
         res = npy.zeros(out_dim,dtype=npy.float32)
         dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
@@ -60,13 +66,17 @@ class PyOpenCLContext(Context):
         #                  event.get_profiling_info( cl.profiling_info.START))
         #print("Execution time: %g s" % elapsed)
         return res
+    def __find_valid_shape(self,inputs):
+        for ipt in inputs:
+            if isinstance(ipt, npy.ndarray):
+                return ipt.shape
+        return None
 
 class PyOpenCLAdd(Filter):
     filter_type    = "add"
     input_ports    = ["in_a","in_b"]
     default_params = {}
     output_port    = True
-    
     def execute(self):
         inputs = [self.input("in_a"), self.input("in_b")]
         kernel_source =  """
@@ -420,6 +430,15 @@ class PyOpenCLArrayDecompose(Filter):
         a = self.input("in")
         return npy.array(a[:,p.index])
 
+class PyOpenCLConst(Filter):
+    filter_type    = "const"
+    default_params = {"value":0}
+    input_ports    = []
+    output_port    = True
+    def execute(self):
+        p = self.params
+        return p.value
+
 class PyOpenCLGrad2D(Filter):
     filter_type    = "grad2d"
     input_ports    = ["in", "dims", "x", "y"]
@@ -661,9 +680,11 @@ filters = [PyOpenCLAdd,
            PyOpenCLSqrt,
            PyOpenCLArrayCompose,
            PyOpenCLArrayDecompose,
+           PyOpenCLConst,
            PyOpenCLGrad2D,
            PyOpenCLGrad3D,
            PyOpenCLCurl2D,
            PyOpenCLCurl3D]
 
 contexts = [PyOpenCLContext]
+
