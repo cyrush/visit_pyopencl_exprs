@@ -284,11 +284,7 @@ def parse(s):
     global vmaps
     vmaps = {}
     res = yacc.parse(s)
-    print "VMaps = ", vmaps
-    # TODO: return vmaps as well
-    # so it can be used for flow gen
-    #return res, vmaps
-    return res
+    return res, vmaps
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

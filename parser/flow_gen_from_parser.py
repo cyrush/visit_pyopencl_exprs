@@ -3,14 +3,14 @@
 # ${disclaimer}
 #
 """
- file: flow_gen_from_parser.py
- author: Maysam Moussalem <maysam@tacc.utexas.edu>
+ File: flow_gen_from_parser.py
+ Author: Maysam Moussalem <maysam@tacc.utexas.edu>
 
- description:
-  Takes a VisIt expression, parses it and builds a flow from it.
+ Description:
+  Takes a list of VisIt expressions, parses them and builds a flow from them.
 
-  Usage:
-    python flow_gen_from_parser.py "mult(a, cos(b))"
+ Usage:
+  python flow_gen_from_parser.py expressions.txt
 
 """
 
@@ -71,7 +71,7 @@ def add_filter(op, filter_id):
        filter_id: Id of filter to be added to flow network.
     """
     global gen_code
-    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"f" + str(filter_id) + "\")\n"
+    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"" + str(filter_id) + "\")\n"
 
 def connect_filter(arg, arg_id, filter_id):
     """ Connect data source to a filter in the flow network.
@@ -82,7 +82,7 @@ def connect_filter(arg, arg_id, filter_id):
        filter_id: Id of filter to be added to flow network.
     """
     global gen_code
-    gen_code += "    ctx.connect(\":" + str(arg) + "\",(\"f" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+    gen_code += "    ctx.connect(\":" + str(arg) + "\",(\"" + str(filter_id) + "\",%d)" % arg_id + ")\n"
 
 def add_decompose_filter(op, filter_id, index):
     """ Create a filter corresponding to a decomposition in the flow network.
@@ -93,18 +93,18 @@ def add_decompose_filter(op, filter_id, index):
        index: Index used in decomposition.
     """
     global gen_code
-    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"f" + str(filter_id) + "\", {\"index\":" + str(index) + "})\n"
+    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"" + str(filter_id) + "\", {\"index\":" + str(index) + "})\n"
 
-def connect_decompose_filter(arg, arg_id, filter_id):
-    """ Connect data source to a decomposition filter in the flow network.
+def connect_decompose_filter(arg, index, filter_id):
+    """ Connect data source to a filter in the flow network.
 
     Args:
        arg: Input data.
-       arg_id: Input id.
+       index: Input index.
        filter_id: Id of filter to be added to flow network.
     """
     global gen_code
-    gen_code += "    ctx.connect(\":" + str(arg) + "\",(\"f" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+    gen_code += "    ctx.connect(\"" + str(arg) + "\",(\"" + str(filter_id) + "\",%d)" % index + ")\n"
 
 def complete_flow_code():
     """ Add remaining line(s) of code.
@@ -112,29 +112,39 @@ def complete_flow_code():
     global gen_code
     gen_code += "    return w;\n"
 
-def create_flow(parsed_expr):
+def create_flow(parsed_expr, isAssignment):
     """ Generates flow network code for data sources and filters from parser output.
 
     Arg:
        parsed_expr: Parsed VisIt expression tree root.
+       isAssignment: If true, set filter_id to id instead of auto-generated filter
+                     id in this case.
 
     Returns:
        filter_id: Id of current filter which could be used as input to another filter.
     """
     global gen_code
     global filter_id
-    filter_id += 1
-
-    current_filter_id = filter_id
-    if (parsed_expr.name == "decompose"):
-        add_decompose_filter(parsed_expr.name, filter_id, parsed_expr.args[1].value)
+    
+    # if assignment, use id as current_filter_id instead of auto-generated one
+    if (isAssignment):
+        current_filter_id = vmaps.keys()[0]
+        add_filter(parsed_expr.name, current_filter_id)
+    elif (parsed_expr.name == "decompose"):
+        filter_id += 1
+        current_filter_id = "f" + str(filter_id)
+        add_decompose_filter(parsed_expr.name, current_filter_id, parsed_expr.args[1].value)
     else:
-        add_filter(parsed_expr.name, filter_id)
+        filter_id += 1
+        current_filter_id = "f" + str(filter_id)
+        add_filter(parsed_expr.name, current_filter_id)
 
     for i in range(len(parsed_expr.args)):
         if (str(parsed_expr.args[i].__class__.__name__) == "FuncCall"):
-            # add a case here for when filter is decomposition
-            connect_filter("f" + str(create_flow(parsed_expr.args[i])), i, current_filter_id)
+            if (parsed_expr.name == "decompose"):
+                connect_decompose_filter(str(create_flow(parsed_expr.args[i], False)), parsed_expr.args[1].value, current_filter_id)
+            else:
+                connect_filter(str(create_flow(parsed_expr.args[i], False)), i, current_filter_id)
         elif (str(parsed_expr.args[i].__class__.__name__) == "Id"):
             connect_filter(str(parsed_expr.args[i].name), i, current_filter_id)
         else:
@@ -143,20 +153,30 @@ def create_flow(parsed_expr):
     return current_filter_id
 
 if __name__ == "__main__":
+    global vmaps
+    
     if len(sys.argv) < 2:
-        sys.exit("Usage: python flow_gen_from_parser.py python flow_gen_from_parser.py \"mult(a, cos(b))\"")
+        sys.exit("Usage: python flow_gen_from_parser.py expressions.txt")
     else:
-        expr = sys.argv[1]
+        exprFile = sys.argv[1]
         
+        # read through file, store expressions in list
+        input = open(str(exprFile), 'r')
+        list = input.readlines()
+
         # initialize flow network code
         gen_code = init_flow_code()
         
-        # parse input expression
-        parsed_expr = parse(expr)
-        print "parsed_expr = ", parsed_expr
-        
-        # generate flow network from parsed expression
-        create_flow(parsed_expr)
+        # process expressions one by one
+        for expr in list:
+            
+            # parse input expression
+            parsed_expr, vmaps = parse(expr)
+            print "parsed_expr = ", parsed_expr
+            print "vmaps = ", vmaps
+            
+            # generate flow network from parsed expression
+            create_flow(parsed_expr, True)
 
         # complete flow network code
         complete_flow_code()
