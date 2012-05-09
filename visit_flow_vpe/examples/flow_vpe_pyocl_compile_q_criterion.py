@@ -52,22 +52,22 @@ def setup_workspace():
         ctx.add_filter("add","s_add_%d" % i)
         ctx.add_filter("mult","s_%d" % i)
         # #
-        # ctx.add_filter("sub","w_sub_%d" % i)
-        # ctx.add_filter("mult","w_%d" % i)
+        ctx.add_filter("sub","w_sub_%d" % i)
+        ctx.add_filter("mult","w_%d" % i)
         #
         ctx.add_filter("mult","s_sq_%d" % i)
         #
-        # ctx.add_filter("mult","w_sq_%d" % i)
+        ctx.add_filter("mult","w_sq_%d" % i)
         ctx.add_filter("add","s_norm_%d" % i)
-        # ctx.add_filter("add","w_norm_%d" % idx)
+        ctx.add_filter("add","w_norm_%d" % idx)
         idx +=1
     ctx.add_filter("mult","s_sq_0")
     ctx.add_filter("add","s_norm_0")
     ctx.add_filter("mult","s_sq_4")
     ctx.add_filter("add","s_norm_4")
     ctx.add_filter("mult","s_sq_8")
-    # ctx.add_filter("sub","final_sub")
-    # ctx.add_filter("mult","final_mult")
+    ctx.add_filter("sub","final_sub")
+    ctx.add_filter("mult","final_mult")
     ctx.connect(":x","du:x")
     ctx.connect(":y","du:y")
     ctx.connect(":z","du:z")
@@ -170,51 +170,51 @@ def setup_workspace():
     #
     # 0
     #
-    # ctx.connect("dudy","w_sub_1:in_a")
-    # ctx.connect("dvdy","w_sub_1:in_b")
-    # ctx.connect("w_sub_1","w_1:in_a")
-    # ctx.connect("half","w_1:in_b")
-    # ctx.connect("w_1","w_sq_1:in_a")
-    # ctx.connect("w_1","w_sq_1:in_b")
-    # #
-    # ctx.connect("dudz","w_sub_2:in_a")
-    # ctx.connect("dwdx","w_sub_2:in_b")
-    # ctx.connect("w_sub_2","w_2:in_a")
-    # ctx.connect("half","w_2:in_b")
-    # ctx.connect("w_2","w_sq_2:in_a")
-    # ctx.connect("w_2","w_sq_2:in_b")
-    # #
-    # #
-    # ctx.connect("dvdx","w_sub_3:in_a")
-    # ctx.connect("dudy","w_sub_3:in_b")
-    # ctx.connect("w_sub_3","w_3:in_a")
-    # ctx.connect("half","w_3:in_b")
-    # ctx.connect("w_3","w_sq_3:in_a")
-    # ctx.connect("w_3","w_sq_3:in_b")
-    # #
-    # # 0 
-    # #
-    # ctx.connect("dvdz","w_sub_5:in_a")
-    # ctx.connect("dwdy","w_sub_5:in_b")
-    # ctx.connect("w_sub_5","w_5:in_a")
-    # ctx.connect("half","w_5:in_b")
-    # ctx.connect("w_5","w_sq_5:in_a")
-    # ctx.connect("w_5","w_sq_5:in_b")
-    # #
-    # #
-    # ctx.connect("dwdx","w_sub_6:in_a")
-    # ctx.connect("dudz","w_sub_6:in_b")
-    # ctx.connect("w_sub_6","w_6:in_a")
-    # ctx.connect("half","w_6:in_b")
-    # ctx.connect("s_6","w_sq_6:in_a")
-    # ctx.connect("s_6","w_sq_6:in_b")
-    # #
-    # ctx.connect("dwdy","w_sub_7:in_a")
-    # ctx.connect("dvdz","w_sub_7:in_b")
-    # ctx.connect("w_sub_6","w_7:in_a")
-    # ctx.connect("half","w_7:in_b")
-    # ctx.connect("w_7","w_sq_7:in_a")
-    # ctx.connect("w_7","w_sq_7:in_b")
+    ctx.connect("dudy","w_sub_1:in_a")
+    ctx.connect("dvdx","w_sub_1:in_b")
+    ctx.connect("w_sub_1","w_1:in_a")
+    ctx.connect("half","w_1:in_b")
+    ctx.connect("w_1","w_sq_1:in_a")
+    ctx.connect("w_1","w_sq_1:in_b")
+    #
+    ctx.connect("dudz","w_sub_2:in_a")
+    ctx.connect("dwdx","w_sub_2:in_b")
+    ctx.connect("w_sub_2","w_2:in_a")
+    ctx.connect("half","w_2:in_b")
+    ctx.connect("w_2","w_sq_2:in_a")
+    ctx.connect("w_2","w_sq_2:in_b")
+    #
+    #
+    ctx.connect("dvdx","w_sub_3:in_a")
+    ctx.connect("dudy","w_sub_3:in_b")
+    ctx.connect("w_sub_3","w_3:in_a")
+    ctx.connect("half","w_3:in_b")
+    ctx.connect("w_3","w_sq_3:in_a")
+    ctx.connect("w_3","w_sq_3:in_b")
+    #
+    # 0 
+    #
+    ctx.connect("dvdz","w_sub_5:in_a")
+    ctx.connect("dwdy","w_sub_5:in_b")
+    ctx.connect("w_sub_5","w_5:in_a")
+    ctx.connect("half","w_5:in_b")
+    ctx.connect("w_5","w_sq_5:in_a")
+    ctx.connect("w_5","w_sq_5:in_b")
+    #
+    #
+    ctx.connect("dwdx","w_sub_6:in_a")
+    ctx.connect("dudz","w_sub_6:in_b")
+    ctx.connect("w_sub_6","w_6:in_a")
+    ctx.connect("half","w_6:in_b")
+    ctx.connect("w_6","w_sq_6:in_a")
+    ctx.connect("w_6","w_sq_6:in_b")
+    #
+    ctx.connect("dwdy","w_sub_7:in_a")
+    ctx.connect("dvdz","w_sub_7:in_b")
+    ctx.connect("w_sub_7","w_7:in_a")
+    ctx.connect("half","w_7:in_b")
+    ctx.connect("w_7","w_sq_7:in_a")
+    ctx.connect("w_7","w_sq_7:in_b")
     # #
     # 0 
     #
@@ -247,7 +247,21 @@ def setup_workspace():
     #
     ctx.connect("s_norm_6","s_norm_7:in_a")
     ctx.connect("s_sq_8","s_norm_7:in_b")
-
+    ###
+    ctx.connect("w_sq_1","w_norm_0:in_a")
+    ctx.connect("w_sq_2","w_norm_0:in_b")
+    # #
+    ctx.connect("w_norm_0","w_norm_1:in_a")
+    ctx.connect("w_sq_3","w_norm_1:in_b")
+    #
+    ctx.connect("w_norm_1","w_norm_2:in_a")
+    ctx.connect("w_sq_5","w_norm_2:in_b")
+    #
+    ctx.connect("w_norm_2","w_norm_3:in_a")
+    ctx.connect("w_sq_6","w_norm_3:in_b")
+    #
+    ctx.connect("w_norm_3","w_norm_4:in_a")
+    ctx.connect("w_sq_7","w_norm_4:in_b")
     
     #ctx.connect("s_norm_%d" % (i-1),"s_norm_%d:in_a" % i)
     # ctx.connect("w_sq_1","w_norm_0:in_a")
@@ -257,11 +271,12 @@ def setup_workspace():
     #     ctx.connect("w_norm_%d" % (idx),"w_norm_%d:in_a" % (idx+1))
     #     idx+=1
     # ctx.connect("w_norm_%d" % (idx-1),"final_sub:in_a")
-    # ctx.connect("s_norm_7","final_sub:in_b")
-    # ctx.connect("final_sub","final_mult:in_a")
-    # ctx.connect("half","final_mult:in_b")
+    ctx.connect("s_norm_7","final_sub:in_a")
+    ctx.connect("w_norm_4","final_sub:in_b")
+    ctx.connect("final_sub","final_mult:in_a")
+    ctx.connect("half","final_mult:in_b")
     #o[gid] = 0.5 * (W_sum - S_sum);
-    print w.graph.save_dot("test.dot")
+    print w.graph.save_dot("qcrit.dot")
     print w.execution_plan()
     return w
 
