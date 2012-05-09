@@ -259,7 +259,7 @@ def setup_workspace():
     ctx.connect("s_norm_7","final_sub:in_b")
     ctx.connect("final_sub","final_mult:in_a")
     ctx.connect("half","final_mult:in_b")
-    print w.graph.save_dot("qcrit.dot")
-    print w.execution_plan()
+    #print w.graph.save_dot("qcrit.dot")
+    #print w.execution_plan()
     return w
 

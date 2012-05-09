@@ -86,7 +86,7 @@ def setup_workspace():
     ctx.connect("vort_add_1","vort_add:in_a")
     ctx.connect("vort_z_sq","vort_add:in_b")
     ctx.connect("vort_add","vort_sqrt:in")
-    print w.execution_plan()
+    #print w.execution_plan()
     return w
 
 
