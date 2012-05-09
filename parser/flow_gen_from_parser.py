@@ -148,7 +148,10 @@ def create_flow(parsed_expr, isAssignment):
         elif (str(parsed_expr.args[i].__class__.__name__) == "Id"):
             connect_filter(str(parsed_expr.args[i].name), i, current_filter_id)
         else:
-            connect_filter(str(parsed_expr.args[i].value), i, current_filter_id)
+            if (not (parsed_expr.name == "decompose")):
+                connect_filter(str(parsed_expr.args[i].value), i, current_filter_id)
+            elif (i < len(parsed_expr.args)-1):
+                connect_filter(str(parsed_expr.args[i].value), i, current_filter_id)
 
     return current_filter_id
 
@@ -176,7 +179,10 @@ if __name__ == "__main__":
             print "vmaps = ", vmaps
             
             # generate flow network from parsed expression
-            create_flow(parsed_expr, True)
+            if (len(vmaps) == 0):
+                create_flow(parsed_expr, False)
+            else:
+                create_flow(parsed_expr, True)
 
         # complete flow network code
         complete_flow_code()
