@@ -19,7 +19,6 @@ import imagick
 try:
     # requires numpy
     import npy_ops
-    import npy_compile
 except:
     pass
 

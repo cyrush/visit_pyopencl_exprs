@@ -61,6 +61,7 @@ class TestPyOpenCLCompile(unittest.TestCase):
         # f5 = f4 + f3
         ctx.connect("f3","f5:in_a")
         ctx.connect("f4","f5:in_b")
+        ctx.set_output_shape(v_a.shape)
         print w.graph
         print w.execution_plan()
         w.execute()

@@ -210,6 +210,16 @@ class FilterGraph(object):
         if node.output_port:
             del self.edges_out[inst_name]
         del self.nodes[inst_name]
+    def save_dot(self,fname):
+        r   = "digraph G {\n"
+        for nname, node in self.nodes.items():
+            for e in self.edges_out[nname]:
+                if nname[0] == ":" : 
+                    nname = "VAR_FETCH_"  + nname[1:]
+                r += "%s -> %s\n" %(nname,e)
+        r += "}\n"
+        open(fname,"w").write(r)
+        return r
     def get_node(self,inst_name):
         """
         Returns the node with the given name, if it exists in the filter graph.

@@ -17,7 +17,7 @@ from flow.filters import pyocl_ops
 
 def setup_workspace():
     w = Workspace()
-    w.register_filters(pyocl_compile)
+    w.register_filters(pyocl_ops)
     ctx = w.add_context("pyocl_ops","root")
     ctx.start()
     ctx.add_filter("mult","vel_x_sq")

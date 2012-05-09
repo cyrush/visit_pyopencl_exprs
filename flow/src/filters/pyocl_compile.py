@@ -406,6 +406,17 @@ class PyOpenCLCompileArrayDecompose(Filter):
         self.context.add_decompose(res[0])
         return ("%s.s%d" % (a[0],p.index), None)
 
+
+class PyOpenCLCompileConst(Filter):
+    filter_type    = "const"
+    default_params = {"value":0}
+    input_ports    = []
+    output_port    = True
+    def execute(self):
+        p = self.params
+        return ("%s" % str(p.value), None)
+
+
 class PyOpenCLCompileGrad3D(Filter):
     filter_type    = "grad"
     input_ports    = ["dims","x","y","z","in"]
@@ -534,6 +545,7 @@ filters = [PyOpenCLCompileSource,
            PyOpenCLCompileSquare,
            PyOpenCLCompileSqrt,
            PyOpenCLCompileArrayDecompose,
-           PyOpenCLCompileGrad3D]
+           PyOpenCLCompileGrad3D,
+           PyOpenCLCompileConst]
 
 contexts = [PyOpenCLCompileContext]

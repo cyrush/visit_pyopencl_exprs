@@ -50,21 +50,14 @@ class TestFlowVPE(unittest.TestCase):
         if visit.Query("Variable Sum"):
             res = visit.GetQueryOutputValue()
         self.assertTrue(res < 1.0e-8)
-    def test_02_npy_compile(self):
-        self.setup_workspace("flow_vpe_npy_compile_example_1.py")
-        # the total sum of all scalar vals of 'check' should equal zero.
-        res = 1e8
-        if visit.Query("Variable Sum"):
-            res = visit.GetQueryOutputValue()
-        self.assertTrue(res < 1.0e-8)
-    def test_03_pyocl_ops(self):
+    def test_02_pyocl_ops(self):
         self.setup_workspace("flow_vpe_pyocl_ops_example_1.py")
         # the total sum of all scalar vals of 'check' should equal zero.
         res = 1e8
         if visit.Query("Variable Sum"):
             res = visit.GetQueryOutputValue()
         self.assertTrue(res < 1.0e-8)
-    def test_04_pyocl_compile(self):
+    def test_03_pyocl_compile(self):
         self.setup_workspace("flow_vpe_pyocl_compile_example_1.py")
         # the total sum of all scalar vals of 'check' should equal zero.
         res = 1e8
