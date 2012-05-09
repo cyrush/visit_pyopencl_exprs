@@ -393,42 +393,45 @@ class ExecutionPlan(object):
     def __init__(self,g):
         self.traversals = []
         self.untouched  = []
-        # find sink points
+        # find src & sink nodes
         snks = []
+        srcs = []
         for node in g.nodes.values():
             if not node.output_port or len(g.edges_out[node.name]) == 0:
                 snks.append(node.name)
+            if node.output_port and not node.name in g.edges_in.keys():
+                srcs.append(node.name)
         tags = {}
         for name in g.nodes.keys():
             tags[name] = 0
         # execute bf traversals from each snk
         for snk_name in snks:
             trav = []
-            q    = Queue()
-            q.put(snk_name)
-            while not q.empty():
-                node_name = q.get()
-                if tags[node_name] == 0:
-                    uref = 1
-                    node = g.nodes[node_name]
-                    if node.output_port:
-                        uref = max(1,len(g.edges_out[node_name]))
-                    if node.number_of_input_ports() > 0:
-                        for src_name in g.edges_in[node_name].values():
-                            if not src_name is None:
-                                q.put(src_name)
-                            else:
-                                uref = 0
-                    if uref > 0:
-                        trav.append((node_name, uref ))
-                        tags[node_name] = 1
+            self.__visit(g,snk_name,tags,trav)
             if len(trav) > 0:
-                trav.reverse()
                 self.traversals.append(trav)
             self.untouched = []
             for name, tag in tags.items():
                 if tag == 0:
                     self.untouched.append(name)
+    def __visit(self,g,node_name,tag,trav):
+        """
+        Traversal visitor for graph topo-sort.
+        """
+        if tag[node_name] != 0 : return
+        uref = 1
+        tag[node_name] = 1
+        node = g.nodes[node_name]
+        if node.output_port:
+            uref = max(1,len(g.edges_out[node_name]))
+        if node.number_of_input_ports() > 0:
+            for src_name in g.edges_in[node_name].values():
+                    if not src_name is None:
+                        self.__visit(g,src_name,tag,trav)
+                    else: # dangle?
+                        uref = 0
+        if uref > 0:
+            trav.append((node_name, uref))
     def __str__(self):
         """
         String pretty print.
