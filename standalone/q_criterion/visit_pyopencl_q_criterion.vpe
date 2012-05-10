@@ -15,7 +15,10 @@ class PyOpenCLQCrit(SimplePythonExpression):
         self.description = "PyOpenCLQCrit"
         self.output_is_point_var = False
         self.output_dimension = 1
-        self.ctx   = cl.create_some_context()
+        dev_id = mpicom.rank() % 2
+        platform = cl.get_platforms()[0]
+        device   = platform.get_devices()[dev_id]
+        self.ctx = cl.Context([device])
         self.queue = cl.CommandQueue(self.ctx)
         self.prog = None
     def derive_variable(self,ds_in,domain_id):
