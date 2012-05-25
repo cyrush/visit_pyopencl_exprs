@@ -29,8 +29,8 @@
 """
 
 import sys
-# note: we can install ply via setup.py install --prefix in the future
-sys.path.insert(0,"ply-3.4")
+
+# NOTE: when we move under flow/parser & run with helper scripts these imports should work.
 
 import ply.lex as lex
 import ply.yacc as yacc
