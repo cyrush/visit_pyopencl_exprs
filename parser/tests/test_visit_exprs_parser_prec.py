@@ -27,102 +27,91 @@ from visit_exprs_parser_prec import parse
 class TestVisItExprParserPrec(unittest.TestCase):
     def setUp(self):
         print ""
-    @parser_test
+
     def test_simple_expr_01(self):
-        expr = "a"
-        parsed_expr_solution = "a"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 01 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 01 failed on vmaps.")
+        """ Simple test for constants. """
+        expr = "123"
+        parser_solution = str(parse(expr))
+        expected_solution = "(const(123), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 01 failed on expr.")
 
     def test_simple_expr_02(self):
-        expr = "a + b"
-        parsed_expr_solution = "+([a, b])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 02 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 02 failed on vmaps.")
+        """ Simple test for variables. """
+        expr = "a"
+        parser_solution = str(parse(expr))
+        expected_solution = "(a, {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 02 failed on expr.")
 
     def test_simple_expr_03(self):
-        expr = "cos(x)"
-        parsed_expr_solution = "cos([x])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 03 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 03 failed on vmaps.")
+        """ Simple test for binary math operation. """
+        expr = "a + b"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>+([a, b]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 03 failed on expr.")
 
     def test_simple_expr_04(self):
-        expr = "a = b"
-        parsed_expr_solution = "b"
-        vmaps_solution = {a: b}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 04 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 04 failed on vmaps.")
+        """ Simple test for unary math operation. """
+        expr = "cos(x)"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>cos([x]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 04 failed on expr.")
 
     def test_simple_expr_05(self):
-        expr = "a = (b + c)"
-        parsed_expr_solution = "+([b, c])"
-        vmaps_solution = {a: <FuncCallObj>+([b, c])}}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 05 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 05 failed on vmaps.")
+        """ Simple test for assignment. """
+        expr = "a = b"
+        parser_solution = str(parse(expr))
+        expected_solution = "(b, {a: b})"
+        self.assertEqual(parser_solution, expected_solution, "Test 05 failed on expr.")
 
     def test_simple_expr_06(self):
-        expr = "a < b"
-        parsed_expr_solution = "<([a, b])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 06 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 06 failed on vmaps.")
+        """ Test expression assignment."""
+        expr = "a = (b + c)"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>+([b, c]), {a: <FuncCallObj>+([b, c])})"
+        self.assertEqual(parser_solution, expected_solution, "Test 06 failed on expr.")
 
     def test_simple_expr_07(self):
-        expr = "cos(x)[180]"
-        parsed_expr_solution = "decompose([cos([x]), const(180)])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 07 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 07 failed on vmaps.")
+        """ Simple test for relational operations. """
+        expr = "a < b"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj><([a, b]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 07 failed on expr.")
 
     def test_simple_expr_08(self):
-        expr = "a + b + c"
-        parsed_expr_solution = "+([+([a, b]), c])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 08 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 08 failed on vmaps.")
+        """ Simple test for decomposition. """
+        expr = "cos(x)[0]"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>decompose([<FuncCallObj>cos([x]), const(0)]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 08 failed on expr.")
 
     def test_simple_expr_09(self):
-        expr = "a + b * c"
-        parsed_expr_solution = "+([a, *([b, c])])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 09 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 09 failed on vmaps.")
+        """ Test precedence. """
+        expr = "a + b + c"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>+([<FuncCallObj>+([a, b]), c]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 09 failed on expr.")
 
     def test_simple_expr_10(self):
+        """ Test precendence enforced with brackets. """
         expr = "a + (b + c)"
-        parsed_expr_solution = "+([a, +([b, c])])"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 10 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 10 failed on vmaps.")
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>+([a, <FuncCallObj>+([b, c])]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 10 failed on expr.")
 
     def test_simple_expr_11(self):
-        expr = "22"
-        parsed_expr_solution = "const(22)"
-        vmaps_solution = {}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 11 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 11 failed on vmaps.")
+        """ Test precendence order. """
+        expr = "a + b * c"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>+([a, <FuncCallObj>*([b, c])]), {})"
+        self.assertEqual(parser_solution, expected_solution, "Test 11 failed on expr.")
 
     def test_simple_expr_12(self):
-        expr = "a = cos (x) + sin(y)"
-        parsed_expr_solution = "+([cos([x]), sin([y])])"
-        vmaps_solution = {a: <FuncCallObj>cos([x])}}
-        parsed_expr, vmaps = parse(expr)
-        self.assertEqual(parsed_expr.name, parsed_expr_solution, "Test 12 failed on expr.")
-        self.assertEqual(vmaps_expr, vmaps_solution, "Test 12 failed on vmaps.")
+        """ Test more complex assignment operation. """
+        expr = "a = (cos (x) + sin(y))"
+        parser_solution = str(parse(expr))
+        expected_solution = "(<FuncCallObj>+([<FuncCallObj>cos([x]), <FuncCallObj>sin([y])]), {a: <FuncCallObj>+([<FuncCallObj>cos([x]), <FuncCallObj>sin([y])])})"
+        self.assertEqual(parser_solution, expected_solution, "Test 12 failed on expr.")
+
 
 if __name__ == '__main__':
     unittest.main()
