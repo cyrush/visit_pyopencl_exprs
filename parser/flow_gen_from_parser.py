@@ -146,6 +146,7 @@ def create_flow(parsed_expr, var_mapping):
     if (is_assignment):
         current_filter_id = assigned_filter
         add_filter(parsed_expr.name, current_filter_id)
+        is_assignment = False
     elif (parsed_expr.name == "decompose"):
         filter_id += 1
         current_filter_id = "f" + str(filter_id)
