@@ -158,7 +158,6 @@ def create_flow(parsed_expr, var_mapping):
 
     # then process operation's parameters
     if (parsed_expr.name == "decompose"):
-        # we know there are only two arguments in this case
         if (str(parsed_expr.args[0].__class__.__name__) == "FuncCall"):
             connect_filter(str(create_flow(parsed_expr.args[0], var_mapping)), 0, current_filter_id)
         elif (str(parsed_expr.args[0].__class__.__name__) == "Id"):
