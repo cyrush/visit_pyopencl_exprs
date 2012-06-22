@@ -20,6 +20,7 @@ from visit_exprs_parser_prec import parse
 # global variables
 gen_code = ""
 filter_id = 0
+filter_list = []
 
 def print_to_file(code, output_file):
     """ Prints generated flow code to a new Python script.
@@ -133,6 +134,7 @@ def create_flow(parsed_expr, var_mapping):
     """
     global gen_code
     global filter_id
+    global filter_list
     is_assignment = False
     assigned_filter = ''
 
@@ -140,7 +142,7 @@ def create_flow(parsed_expr, var_mapping):
     for key, item in var_mapping.iteritems():
         if (str(parsed_expr) == str(item)):
             is_assignment = True
-            assigned_filter = str(key)       
+            assigned_filter = str(key)
 
     # start out by processing op at root of parse tree
     if (is_assignment):
@@ -155,13 +157,17 @@ def create_flow(parsed_expr, var_mapping):
         filter_id += 1
         current_filter_id = "f" + str(filter_id)
         add_filter(parsed_expr.name, current_filter_id)
+    filter_list.append(current_filter_id)
 
     # then process operation's parameters
     if (parsed_expr.name == "decompose"):
         if (str(parsed_expr.args[0].__class__.__name__) == "FuncCall"):
             connect_filter(str(create_flow(parsed_expr.args[0], var_mapping)), 0, current_filter_id)
         elif (str(parsed_expr.args[0].__class__.__name__) == "Id"):
-            connect_filter_var(str(parsed_expr.args[0].name), 0, current_filter_id)
+            if (str(parsed_expr.args[0].name) in filter_list):
+                connect_filter(str(parsed_expr.args[0].name), 0, current_filter_id)
+            else:
+                connect_filter_var(str(parsed_expr.args[0].name), 0, current_filter_id)
         else:
             connect_filter(str(parsed_expr.args[0].value), 0, current_filter_id)
     else:
@@ -169,7 +175,10 @@ def create_flow(parsed_expr, var_mapping):
             if (str(parsed_expr.args[i].__class__.__name__) == "FuncCall"):
                 connect_filter(str(create_flow(parsed_expr.args[i], var_mapping)), i, current_filter_id)
             elif (str(parsed_expr.args[i].__class__.__name__) == "Id"):
-                connect_filter_var(str(parsed_expr.args[i].name), i, current_filter_id)
+                if (str(parsed_expr.args[i].name) in filter_list):
+                    connect_filter(str(parsed_expr.args[i].name), i, current_filter_id)
+                else:
+                    connect_filter_var(str(parsed_expr.args[i].name), i, current_filter_id)
             else:
                 connect_filter(str(parsed_expr.args[i].value), i, current_filter_id)
 
