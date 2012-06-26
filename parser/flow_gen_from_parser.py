@@ -53,10 +53,22 @@ def complete_flow_code():
     global gen_code
     gen_code += "    return w;\n"
 
-def get_flow_code():
+def get_flow_code(expr):
     """ Return the string containing the flow code.
     Can be used for testing.
+
+    Arg:
+       expr: Expression which will be parsed and from which a flow will be generated.
     """
+    global gen_code
+    global filter_id
+    global filter_list
+    # reset global vars here (important for unit testing)
+    gen_code = ""
+    filter_id = 0
+    filter_list = []
+    parsed_expr, vmaps = parse(expr)
+    create_flow(parsed_expr, vmaps)
     return gen_code
 
 def create_numpy_data_array(arg_id):
@@ -66,7 +78,9 @@ def create_numpy_data_array(arg_id):
        arg_id: Name of input data array.
     """
     global gen_code
-    gen_code += "    v_" + str(arg_id) + " = npy.array(range(10),dtype=npy.float32)\n"
+    gen_line = "    v_" + str(arg_id) + " = npy.array(range(10),dtype=npy.float32)\n"
+    gen_code += gen_line
+    return gen_line
 
 def add_data_source(arg_id):
     """ Create a data source in the flow network.
@@ -75,7 +89,9 @@ def add_data_source(arg_id):
        arg_id: Name of input data array.
     """
     global gen_code
-    gen_code += "    ctx.registry_add(\":" + str(arg_id) + "\",v_" + str(arg_id) + ")\n"
+    gen_line = "    ctx.registry_add(\":" + str(arg_id) + "\",v_" + str(arg_id) + ")\n"
+    gen_code += gen_line
+    return gen_line
 
 def add_filter(op, filter_id):
     """ Create a filter corresponding to an operation in the flow network.
@@ -85,7 +101,9 @@ def add_filter(op, filter_id):
        filter_id: Id of filter to be added to flow network.
     """
     global gen_code
-    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"" + str(filter_id) + "\")\n"
+    gen_line = "    ctx.add_filter(\"" + str(op) + "\", \"" + str(filter_id) + "\")\n"
+    gen_code += gen_line
+    return gen_line
 
 def add_decompose_filter(op, filter_id, index):
     """ Create a filter corresponding to a decomposition in the flow network.
@@ -96,7 +114,9 @@ def add_decompose_filter(op, filter_id, index):
        index: Index used in decomposition.
     """
     global gen_code
-    gen_code += "    ctx.add_filter(\"" + str(op) + "\", \"" + str(filter_id) + "\", {\"index\":" + str(index) + "})\n"
+    gen_line = "    ctx.add_filter(\"" + str(op) + "\", \"" + str(filter_id) + "\", {\"index\":" + str(index) + "})\n"
+    gen_code += gen_line
+    return gen_line
 
 def connect_filter_var(arg, arg_id, filter_id):
     """ Connect data source to a filter in the flow network. Data source is a variable
@@ -108,7 +128,9 @@ def connect_filter_var(arg, arg_id, filter_id):
        filter_id: Id of filter to be added to flow network.
     """
     global gen_code
-    gen_code += "    ctx.connect(\":" + str(arg) + "\",(\"" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+    gen_line = "    ctx.connect(\":" + str(arg) + "\",(\"" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+    gen_code += gen_line
+    return gen_line
 
 def connect_filter(arg, arg_id, filter_id):
     """ Connect data source to a filter in the flow network. Data source is the result of
@@ -120,7 +142,9 @@ def connect_filter(arg, arg_id, filter_id):
        filter_id: Id of filter to be added to flow network.
     """
     global gen_code
-    gen_code += "    ctx.connect(\"" + str(arg) + "\",(\"" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+    gen_line = "    ctx.connect(\"" + str(arg) + "\",(\"" + str(filter_id) + "\",%d)" % arg_id + ")\n"
+    gen_code += gen_line
+    return gen_line
 
 def create_flow(parsed_expr, var_mapping):
     """ Generates flow network code for data sources and filters from parser output.

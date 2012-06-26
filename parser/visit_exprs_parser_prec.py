@@ -29,6 +29,8 @@
 """
 
 import sys
+# maysam: keep this line for now, remove later
+sys.path.insert(0,"ply-3.4")
 
 # NOTE: when we move under flow/parser & run with helper scripts these imports should work.
 
