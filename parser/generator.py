@@ -26,40 +26,41 @@ import os
 import parser
 
 class Generator(object):
-    def __init__(self):
-        self.reset()
-    def reset(self):
-        self.__count = 0
-        self.__vmaps = {}
-    def parse_network(self,txt):
-        self.reset()
+    @classmethod
+    def parse_network(cls,txt):
+        res = []
         stmts = parser.parse(txt)
-        self.create_network(stmts)
-    def create_network(self,stmts):
+        cls.create_network(stmts,res)
+        return res
+    @classmethod
+    def create_network(cls,stmts,filters,count=None,vmaps=None):
+        if count is None: count = [0]
+        if vmaps is None: vmaps = {}
         res = []
         for expr in stmts:
             if isinstance(expr,parser.FuncCall):
-                args = self.create_network(expr.args)
-                fname = "f%d" % self.__count
+                args = cls.create_network(expr.args,filters,count,vmaps)
+                fname = "f%d" % count[0]
                 print fname,"=", expr.name,"(",args,")"
-                res.append(fname)
-                self.__count +=1
+                filters.append([fname, parser.FuncCall(expr.name, args)])
+                res.append(parser.Identifier(fname))
+                count[0]+=1
             if isinstance(expr,parser.Assignment):
-                res = self.create_network([expr.value])
+                res = cls.create_network([expr.value],filters,count,vmaps)
                 print expr.name, ":=", res[0]
-                self.__vmaps[expr.name] = res[0]
+                vmaps[expr.name] = res[0]
             if isinstance(expr,parser.Identifier):
-                if expr.name in self.__vmaps.keys():
-                    print expr.name, ":=", self.__vmaps[expr.name] 
-                    iname =  self.__vmaps[expr.name] 
+                if expr.name in vmaps.keys():
+                    print expr.name, ":=", vmaps[expr.name]
+                    iname =  vmaps[expr.name] 
                 else:
                     iname = ":" + expr.name
-                res.append(iname)
+                res.append(parser.Identifier(iname))
             if isinstance(expr,list):
-                rvals = self.create_network(expr)
+                rvals = cls.create_network(expr,filters,count,vmaps)
                 res.extend(rvals)
             if isinstance(expr,parser.Constant):
-                res.append(expr.value)
+                res.append(expr)
         return res
 
 if __name__ == "__main__":
@@ -72,4 +73,6 @@ if __name__ == "__main__":
     for r in stmts:
         print " ",r
     print "\nNetwork:"
-    Generator().parse_network(txt)
+    filters = Generator.parse_network(txt)
+    for f in filters:
+        print f
