@@ -39,7 +39,7 @@ setup(name='flow',
       author_email = 'cyrush@llnl.gov',
       description  ='flow: A small, flexible python data flow framework.',
       package_dir  = {'flow':'src'},
-      packages=['flow','flow.core','flow.filters'],
+      packages=['flow','flow.core','flow.parser','flow.filters'],
       cmdclass = { 'test': setup_tests.ExecuteTests})
 
 if using_visit:
