@@ -50,7 +50,7 @@ How to run the standalone gradient example:
 ---------------
 <pre>
  > cd standalone/gradient/
- > visit -cli -s visit -cli -s visit_pyopencl_grad_exec.py 
+ > visit -cli -s visit_pyopencl_grad_exec.py 
 </pre>
  
 
