@@ -19,6 +19,8 @@ from registry      import *
 from filter_graph  import *
 from state_control import *
 
+from ..parser      import *
+
 import log
 
 # logging helper for workspace
@@ -366,6 +368,15 @@ class Workspace(object):
                     rval= res
                 tidx += 1
         return res
+    def setup_expression_network(self,txt,ctx=None):
+        """
+        Uses the expression parser to setup the workspace from a user 
+        expression.
+        """
+        if ctx is None:
+            ctx = self.default_context
+        Generator.parse_network(txt,ctx)
+
     @classmethod
     def load_workspace_script(cls,src=None,file=None):
         """

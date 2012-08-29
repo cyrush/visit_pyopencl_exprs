@@ -56,6 +56,31 @@ class TestParser(unittest.TestCase):
         print "Test Result:         %s" % str(test_res)
         print "Difference:          %s" % str(dsum)
         self.assertTrue(dsum < 1e-6)
+    def test_03_simple_expr_gen_from_workspace(self):
+        w = Workspace()
+        w.register_filters(npy_ops)
+        v_a = npy.array(range(10),dtype=npy.double)
+        v_b = npy.array(range(10),dtype=npy.double)
+        c_2 = 2.0
+        w.registry_add(":v_a",v_a)
+        w.registry_add(":v_b",v_b)
+        w.registry_add(":c_2",c_2)
+        print ""
+        expr = "res = (v_a + v_b)^c_2 + (v_a  - v_b)^c_2"
+        print "test_expr: " + expr
+        w.setup_expression_network(expr)
+        print ""
+        print w.graph
+        print w.execution_plan()
+        act_res = w.execute()
+        # get output and test
+        test_res = npy.power((v_a + v_b),2.0)+ npy.power((v_a - v_b),2.0)
+        dsum = npy.sum(act_res - test_res)
+        print "Filter Graph Result: %s" % str(act_res)
+        print "Test Result:         %s" % str(test_res)
+        print "Difference:          %s" % str(dsum)
+        self.assertTrue(dsum < 1e-6)
+
 
 if __name__ == '__main__':
     unittest.main()
