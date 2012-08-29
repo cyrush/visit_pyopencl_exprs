@@ -264,6 +264,7 @@ def setup_all():
     setup_pypi_package("pytools","2011.4",dest_dir=dest)
     setup_pypi_package("decorator","3.3.2",dest_dir=dest)
     setup_pypi_package("pyopencl","2011.1.2",dest_dir=dest)
+    setup_pypi_package("ply","3.4",dest_dir=dest)
     #setup_pyopencl(dest);
 
 if using_visit:
