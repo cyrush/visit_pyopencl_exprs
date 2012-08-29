@@ -3,7 +3,7 @@
 # ${disclaimer}
 #
 """
- file: run_vort_mag_timings.py
+ file: run__timings.py
  author: Cyrus Harrison <cyrush@llnl.gov>
  description:
   Runs vort mag cases and organizes / reports timing output info.
@@ -71,20 +71,20 @@ def move_results(dest_dir):
     sexe(cmd)
 
 
-def exe_cpu(rtype,idx,rdirs,test_file,nprocs,ts):
+def exe_cpu(rtype,method,idx,rdirs,test_file,nprocs,ts):
     if rtype.count("vort"):
         test_script = pjoin(sdir,"..","standalone","vorticity","visit_vorticity_exec.py")
     elif rtype.count("mag"):
         test_script = pjoin(sdir,"..","standalone","vector_mag","visit_vector_mag_exec.py")
     else:
         test_script = pjoin(sdir,"..","standalone","q_criterion","visit_q_criterion_exec.py")
-    cmd = vcmd(nprocs,tstride=ts) + " %s %s -save" % (test_script,test_file)
+    cmd = vcmd(nprocs,method,tstride=ts) + " %s %s -save" % (test_script,test_file)
     print "\nEXEC:CPU\n   Dset:%s\n   Script:%s\n" % (test_file,test_script)
     sexe(cmd)
     dest_dir = pjoin(rdirs["cpu"],"timing.results.%04d") % idx
     move_results(dest_dir)
 
-def exe_gpu_hand(rtype,idx,rdirs,test_file,nprocs,ts):
+def exe_gpu_hand(rtype,method,idx,rdirs,test_file,nprocs,ts):
     if rtype.count("vort"):
         test_script = pjoin(sdir,"..","standalone","vorticity","visit_pyopencl_vorticity_exec.py")
     elif rtype.count("mag"):
@@ -92,12 +92,12 @@ def exe_gpu_hand(rtype,idx,rdirs,test_file,nprocs,ts):
     else:
         test_script = pjoin(sdir,"..","standalone","q_criterion","visit_pyopencl_q_criterion_exec.py")
     print "\nEXEC:GPU HAND\n   Dset:%s\n   Script:%s\n" % (test_file,test_script)
-    cmd = vcmd(nprocs,tstride=ts) + " %s %s -save" % (test_script,test_file)
+    cmd = vcmd(nprocs,method,tstride=ts) + " %s %s -save" % (test_script,test_file)
     sexe(cmd)
     dest_dir = pjoin(rdirs["hand"],"timing.results.%04d") % idx
     move_results(dest_dir)
 
-def exe_gpu_auto(rtype,idx,rdirs,test_file,nprocs,ts):
+def exe_gpu_auto(rtype,method,idx,rdirs,test_file,nprocs,ts):
     test_script = pjoin(sdir,"..","visit_flow_vpe","visit_exec_example_workspace.py")
     if rtype.count("vort"):
         test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_compile_vort_mag_1.py")
@@ -105,13 +105,13 @@ def exe_gpu_auto(rtype,idx,rdirs,test_file,nprocs,ts):
         test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_compile_vel_mag_1.py")
     else:
         test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_compile_q_criterion.py")
-    cmd = vcmd(nprocs,tstride=ts) + " %s %s %s -save" % (test_script,test_wspace,test_file)
+    cmd = vcmd(nprocs,method,tstride=ts) + " %s %s %s -save" % (test_script,test_wspace,test_file)
     print "\nEXEC:GPU AUTO\n   Dset:%s\n   Script:%s\n" % (test_file,test_wspace)
     sexe(cmd)
     dest_dir = pjoin(rdirs["auto"],"timing.results.%04d") % idx
     move_results(dest_dir)
 
-def exe_gpu_naive(rtype,idx,rdirs,test_file,nprocs,ts):
+def exe_gpu_naive(rtype,method,idx,rdirs,test_file,nprocs,ts):
     test_script = pjoin(sdir,"..","visit_flow_vpe","visit_exec_example_workspace.py")
     if rtype.count("vort"):
         test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_ops_vort_mag_1.py")
@@ -119,17 +119,17 @@ def exe_gpu_naive(rtype,idx,rdirs,test_file,nprocs,ts):
         test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_ops_vel_mag_1.py")
     else:
         test_wspace = pjoin(sdir,"..","visit_flow_vpe","examples","flow_vpe_pyocl_ops_q_criterion.py")
-    cmd = vcmd(nprocs,tstride=ts) + " %s %s %s -save" % (test_script,test_wspace,test_file)
+    cmd = vcmd(nprocs,method,tstride=ts) + " %s %s %s -save" % (test_script,test_wspace,test_file)
     print "\nEXEC:GPU NAIVE\n   Dset:%s\n   Script:%s\n" % (test_file,test_wspace)
     sexe(cmd)
     dest_dir = pjoin(rdirs["naive"],"timing.results.%04d") % idx
     move_results(dest_dir)
 
-def exe_single(rtype,test_file,idx,rdirs,nprocs,ts):
-    exe_gpu_hand(rtype,idx,rdirs,test_file,nprocs,ts)
-    exe_cpu(rtype,idx,rdirs,test_file,nprocs,ts)
-    exe_gpu_auto(rtype,idx,rdirs,test_file,nprocs,ts)
-    exe_gpu_naive(rtype,idx,rdirs,test_file,nprocs,ts)
+def exe_single(rtype,method,test_file,idx,rdirs,nprocs,ts):
+    exe_gpu_hand(rtype,method,idx,rdirs,test_file,nprocs,ts)
+    exe_cpu(rtype,method,idx,rdirs,test_file,nprocs,ts)
+    exe_gpu_auto(rtype,method,idx,rdirs,test_file,nprocs,ts)
+    exe_gpu_naive(rtype,method,idx,rdirs,test_file,nprocs,ts)
 
 def timing_summary(rdirs,nprocs,ofile = None):
     if not ofile is None:
@@ -178,28 +178,31 @@ if __name__ == "__main__":
     test_file =pjoin(sdir,"..","rt3d_small_chunk.silo")
     test_file =pjoin(sdir,"..","rt3d_one_chunk.silo")
     test_file =pjoin(sdir,"..","single_large_test_with_coords.silo")
-    args = sys.argv
-    rtype = "vort"
+    args  = sys.argv
+    rtype  = "vort"
+    method = "srun"
     tstride = 1
     if len(args) > 1:
-        test_file = os.path.abspath(args[1])
+        method = args[1]
     if len(args) > 2:
-        rtype = args[2]
-    tag = rtype
+        test_file = os.path.abspath(args[2])
     if len(args) > 3:
-        ntests = int(args[3])
+        rtype = args[3]
+    tag = rtype
     if len(args) > 4:
-        nprocs = int(args[4])
+        ntests = int(args[4])
     if len(args) > 5:
-        tag = tag  + args[5]
+        nprocs = int(args[5])
     if len(args) > 6:
-        tstride = int(args[6])
+        tag = tag  + args[6]
+    if len(args) > 7:
+        tstride = int(args[7])
     ofile = "out." + tag + ".txt" 
     setup_python_path()
     rdirs = prep_results_dir(tag)
     print "[executing %d timing runs]" % ntests
     for idx in xrange(ntests):
-        exe_single(rtype,test_file,idx,rdirs,nprocs,tstride)
+        exe_single(rtype,method,test_file,idx,rdirs,nprocs,tstride)
     print "[results]"
     timing_summary(rdirs,nprocs,ofile )
 

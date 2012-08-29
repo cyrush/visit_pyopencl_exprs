@@ -1,0 +1,1 @@
+vel_mag = sqrt(vx^2 + vy^2 + vz^2)
