@@ -1,1 +1,1 @@
-vel_mag = (sqrt(add(add(mult(vx,vx),mult(vy,vy)),mult(vz,vz))))
+vel_mag = sqrt(vx^2 + vy^2 + vz^2)

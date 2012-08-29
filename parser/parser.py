@@ -3,25 +3,28 @@
 # ${disclaimer}
 #
 """
- file: visit_exprs_parser.py
- authors: Cyrus Harrison <cyrush@llnl.gov>
-         Maysam Moussalem <maysam@tacc.utexas.edu>
+ File: visit_exprs_parser.py
+ Authors: Cyrus Harrison <cyrush@llnl.gov>
+          Maysam Moussalem <maysam@tacc.utexas.edu>
 
- description:
-  ply (python lex & yacc) parser for VisIt's expression language.
+ Description:
+  ply (python lex & yacc) parser for a simple expression language.
   I used Mayam's visit_exprs.py as a starting point & adapted a subset
   of rules from VisIt's existing expression language parser:
    http://portal.nersc.gov/svn/visit/trunk/src/common/expr/ExprGrammar.C
 
- I also used this following tutorial as a reference:
-  http://drdobbs.com/web-development/184405580
+  I also used the following references:
+   http://drdobbs.com/web-development/184405580
+   http://www.juanjoconti.com.ar/files/python/ply-examples/
 
   Usage:
    Command Line:
-   > python visit_exprs_parser.py " a(2,3) + b^3 + 4 * var"
+   > python parser.py "vx = a(2,3) + b^3 + 4 * var"
+   (or) 
+   > python parser.py example_expr.txt
    From python:
-   >>> from visit_exprs_parser import parse
-   >>> print parse(" a(2,3) + b^3 + 4 * var")
+   >>> import parser
+   >>> print parser.parse("vx = a(2,3) + b^3 + 4 * var")
 
 """
 
@@ -198,6 +201,20 @@ def t_error(t):
 # Build the lexer
 lex.lex()
 
+
+# used to map symbols to eventual
+# data flow filter names
+binary_expr_names = {"+":"add",
+                     "-":"sub",
+                     "*":"mult",
+                     "^":"pow",
+                     "/":"divide",
+                     ">=":"gte",
+                     "<=":"lte",
+                     ">":"gt",
+                     "<":"lt",
+                     "==":"equal"}
+
 # Parsing rules
 # Adding precedence rules
 precedence = (
@@ -222,6 +239,7 @@ def p_statement(t):
     """ 
     statement : assign_expr NEWLINE
               | assign_expr SEMI NEWLINE
+              | assign_expr
     """
     t[0] = t[1]
 
@@ -246,6 +264,12 @@ def p_expr(t):
          | func
     """
     t[0] = t[1]
+    
+def p_expr_paren(t):
+    """
+    expr : LPAREN expr RPAREN
+    """
+    t[0] = t[2]
 
 def p_binary_expr(t):
     """
@@ -260,7 +284,7 @@ def p_binary_expr(t):
                 | expr LT    expr
                 | expr EQ    expr
     """
-    t[0] = FuncCall(t[2],[t[1],t[3]])
+    t[0] = FuncCall(binary_expr_names[t[2]],[t[1],t[3]])
 
 def p_unary_expr(t):
     """
@@ -276,11 +300,13 @@ def p_func(t):
          | LBRACE args RBRACE
     """
     if t[2] == ")":
-        t[0] = FuncCall(t[1])
-    if t[1] == "{":
+        t[0] = FuncCall(t[1].name)
+    elif t[1] == "{":
         t[0] = FuncCall("compose",t[2])
+    elif t[2] == "[":
+        t[0] = FuncCall("decompose",[t[1],t[3]])
     else:
-        t[0] = FuncCall(t[1], t[3])
+        t[0] = FuncCall(t[1].name, t[3])
 
 def p_var(t):
     """
@@ -298,7 +324,6 @@ def p_const(t):
     """
     t[0] = Constant(t[1])
 
-
 def p_args_extend(t):
     """
     args : args COMMA expr
@@ -313,17 +338,16 @@ def p_args_expr(t):
 
 def p_error(p):
     if p:
-        print("Syntax error '%s'" % p.type)
-        print("Syntax error at '%s'" % p.value)
+        print "<line",p.lineno, "> Syntax Error", p.type, p.value
 
 # Build the parser
 yacc.yacc()
 
-def parse(s):
+def parse(txt):
     """
     Main entry point for parsing from outside of this module.
     """
-    return yacc.parse(s)
+    return yacc.parse(txt)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
