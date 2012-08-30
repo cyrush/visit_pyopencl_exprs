@@ -108,6 +108,7 @@ class PyOpenCLCompileContext(Context):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
+        print msg
         info(msg)
         #queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
         queue = cl.CommandQueue(ctx)
@@ -137,7 +138,7 @@ class PyOpenCLCompileSource(Filter):
     default_params = {}
     output_port    = True
     def execute(self):
-        # fetch data from registry 
+        # fetch data from registry
         # the instance name determines the reg entry_key
         key  = self.name[self.name.rfind(":"):]
         data = self.context.registry_fetch(key)

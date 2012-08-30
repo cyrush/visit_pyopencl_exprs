@@ -49,8 +49,11 @@ def main():
     dbfile = pjoin("tests","_data","rect2d.silo")
     if len(args) > 1:
         dbfile = args[1]
+    fset = "pyocl_ops"
+    if len(args) > 2:
+        fset = args[2]
     visit.OpenDatabase(dbfile)
-    define_flow_vpe("flow",file=wfile)
+    define_flow_vpe("flow",expr=wfile,filter_set=fset)
     visit.AddPlot("Pseudocolor","flow")
     visit.DrawPlots()
 

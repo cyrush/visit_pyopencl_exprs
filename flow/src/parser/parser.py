@@ -168,7 +168,7 @@ def t_ID(t):
     return t
 
 # string
-# Read in a string, as in C.  
+# Read in a string, as in C.
 # The following backslash sequences have their usual special meaning:
 #  \", \\, \n, and \t.
 def t_STRING(t):
@@ -245,17 +245,17 @@ precedence = (
 
 def p_statements(t):
     """
-    statements : statements statement   
+    statements : statements statement
                | statement
     """
     if len(t) > 2:
         t[0] = t[1] + [t[2]]
     else:
         t[0] = [t[1]]
-        
-    
+
+
 def p_statement(t):
-    """ 
+    """
     statement : assign_expr NEWLINE
               | assign_expr SEMI NEWLINE
               | assign_expr
@@ -263,7 +263,7 @@ def p_statement(t):
     t[0] = t[1]
 
 def p_statement_newline(t):
-    """ 
+    """
     statement : NEWLINE
     """
     pass
@@ -273,7 +273,7 @@ def p_assign(t):
     """
     assign_expr : ID ASSIGN expr
     """
-    t[0] = Assignment(t[1],t[3])
+    t[0] = Assignment(t[1].name,t[3])
 
 def p_expr(t):
     """
@@ -283,7 +283,7 @@ def p_expr(t):
          | func
     """
     t[0] = t[1]
-    
+
 def p_expr_paren(t):
     """
     expr : LPAREN expr RPAREN

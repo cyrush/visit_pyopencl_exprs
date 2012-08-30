@@ -6,7 +6,7 @@
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 12/09/2011
  description:
-    Provides a function that defines a VisIt Python Expression 
+    Provides a function that defines a VisIt Python Expression
     to execute a flow workspace.
 
 """
@@ -14,6 +14,7 @@
 import visit
 import os
 from flow import *
+import flow.filters
 
 from os.path import join as pjoin
 
@@ -27,22 +28,23 @@ def escape_src(src):
     src = src.replace(' ','\\s')
     return src
 
-def define_flow_vpe(ename,src=None,file=None):
+def define_flow_vpe(ename,expr,filter_set="pyocl_ops"):
     # get proper vpe path ...
     fvpe = pjoin(vpe_path(),"visit_flow_exec.vpe")
     args = []
-    script_src = src
-    if script_src is None and not file is None:
-        # we want to pass workspace script as a source
-        # string, b/c the engine may not mount the same fs.
-        script_src = open(file).read()
-    w = Workspace.load_workspace_script(src=script_src)
+    if os.path.isfile(expr):
+        expr = open(expr).read()
+    w = Workspace()
+    w.register_filters(flow.filters.module(filter_set))
+    ctx = w.add_context(filter_set,"root")
+    ctx.start()
+    w.setup_expression_network(expr,ctx)
     # get root vars & use as expr args
     evars = w.filter_names()
     evars = [ evar[1:] for evar in evars if evar[0] == ":" and evar != ":dims"]
     args.extend(evars)
-    script_src = escape_src(script_src)
-    args.extend(['"src"','"' + script_src + '"'])
+    expr_escaped = escape_src(expr)
+    args.extend(['"'+ filter_set +  '"','"' + expr_escaped+ '"'])
     visit.DefinePythonExpression(ename,file=fvpe,args=args)
 
 

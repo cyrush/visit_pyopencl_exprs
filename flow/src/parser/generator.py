@@ -8,7 +8,7 @@
          Maysam Moussalem <maysam@tacc.utexas.edu>
 
  Description:
-  Takes a list of expressions, parses them and builds a data flow 
+  Takes a list of expressions, parses them and builds a data flow
   network specification.
 
  Usage:
@@ -45,11 +45,10 @@ class Generator(object):
             if isinstance(expr,Assignment):
                 res = cls.__create_network([expr.value],filters,count,vmaps)
                 print expr.name, ":=", res[0]
-                vmaps[expr.name] = res[0]
+                vmaps[expr.name] = res[0].name
             if isinstance(expr,Identifier):
                 if expr.name in vmaps.keys():
-                    print expr.name, ":=", vmaps[expr.name]
-                    iname =  vmaps[expr.name] 
+                    iname =  vmaps[expr.name]
                 else:
                     iname = ":" + expr.name
                 res.append(Identifier(iname))
@@ -57,7 +56,11 @@ class Generator(object):
                 rvals = cls.__create_network(expr,filters,count,vmaps)
                 res.extend(rvals)
             if isinstance(expr,Constant):
-                res.append(expr)
+                fname = "c%d" % count[0]
+                print fname,"=", "const([]",",", {"value":expr.value},")"
+                filters.append([fname, FuncCall("const", [], {"value":expr.value})])
+                res.append(Identifier(fname))
+                count[0]+=1
         return res
     @classmethod
     def __setup_context(cls,filters,ctx):

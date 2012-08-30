@@ -77,6 +77,15 @@ class NPySqrt(Filter):
     def execute(self):
         return npy.sqrt(self.input("in"))
 
+class NPyCLConst(Filter):
+    filter_type    = "const"
+    default_params = {"value":0}
+    input_ports    = []
+    output_port    = True
+    def execute(self):
+        p = self.params
+        return p.value
+
 class NPyArrayCompose(Filter):
     filter_type    = "compose"
     input_ports    = ["in_a","in_b"]
@@ -151,6 +160,7 @@ filters = [NPyAdd,
            NPySin,
            NPyCos,
            NPySqrt,
+           NPyCLConst,
            NPyArrayCompose,
            NPyArrayDecompose,
            NPyGrad]

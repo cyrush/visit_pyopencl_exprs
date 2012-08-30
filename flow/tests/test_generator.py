@@ -61,12 +61,10 @@ class TestParser(unittest.TestCase):
         w.register_filters(npy_ops)
         v_a = npy.array(range(10),dtype=npy.double)
         v_b = npy.array(range(10),dtype=npy.double)
-        c_2 = 2.0
         w.registry_add(":v_a",v_a)
         w.registry_add(":v_b",v_b)
-        w.registry_add(":c_2",c_2)
         print ""
-        expr = "res = (v_a + v_b)^c_2 + (v_a  - v_b)^c_2"
+        expr = "res = (v_a + v_b)^2 + (v_a  - v_b)^2"
         print "test_expr: " + expr
         w.setup_expression_network(expr)
         print ""

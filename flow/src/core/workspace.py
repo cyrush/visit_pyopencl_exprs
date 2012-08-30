@@ -162,8 +162,8 @@ class Context(object):
 class Workspace(object):
     """
     Main data flow container abstraction.
-    
-    
+
+
     """
     def __init__(self):
         self.graph    = FilterGraph()
@@ -175,7 +175,7 @@ class Workspace(object):
     def register_filter_module(self,filter_module):
         """
         Registers a set of filters and contexts exposed in a filter module.
-        
+
         Registers Filter subclasses in a list named `fitlers'.
         Registers Context subclasses in a list named `context'.
         """
@@ -188,7 +188,7 @@ class Workspace(object):
                 self.register_context(ctx)
     def register_filters(self,filters):
         """
-        Helper 
+        Helper
         """
         if "filters" in dir(filters):
             self.register_filter_module(filters)
@@ -261,7 +261,7 @@ class Workspace(object):
         return self.graph.filter_name(filter_name)
     def has_filter(self,filter_name):
         """
-        Returns True if a filter node with the given name exists in 
+        Returns True if a filter node with the given name exists in
         the workspace.
         """
         return self.graph.has_node(filter_name)
@@ -272,7 +272,7 @@ class Workspace(object):
         return self.graph.nodes.keys()
     def has_context(self,context_name):
         """
-        Returns True if a context with the given name exists in 
+        Returns True if a context with the given name exists in
         the workspace.
         """
         return context_name in self.contexts.keys()
@@ -317,7 +317,7 @@ class Workspace(object):
     def execute(self,states=None):
         """
         Executes a flow workspace for a given set of states.
-        
+
         TODO:MORE INFO
         """
         if states is None:
@@ -338,7 +338,7 @@ class Workspace(object):
         for t in plan.traversals:
             info("Execute Traversal %d" % tidx)
             for v in t:
-                # get filter node & # of refs 
+                # get filter node & # of refs
                 node_name, uref = v
                 node = self.graph.nodes[node_name]
                 try:
@@ -376,7 +376,7 @@ class Workspace(object):
         return res
     def setup_expression_network(self,txt,ctx=None):
         """
-        Uses the expression parser to setup the workspace from a user 
+        Uses the expression parser to setup the workspace from a user
         expression.
         """
         if ctx is None:
@@ -403,7 +403,7 @@ class Workspace(object):
 class ExecutionPlan(object):
     """
     Workspace execution plan.
-    
+
     Provides info about graph traversals that is used to execute
     a data flow network.
     """

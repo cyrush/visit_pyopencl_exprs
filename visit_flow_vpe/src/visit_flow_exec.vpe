@@ -16,7 +16,7 @@ import numpy as npy
 import vtk.util.numpy_support as vnp
 
 from flow import *
-from flow.filters import pyocl_compile
+from flow.filters import *
 
 class FlowExecExpr(SimplePythonExpression):
     def __init__(self):
@@ -27,10 +27,14 @@ class FlowExecExpr(SimplePythonExpression):
     def derive_variable(self,ds_in,domain_id):
         # get workspace
         wstype = self.arguments[0]
-        if wstype == "src":
-            w = Workspace.load_workspace_script(src=self.arguments[1])
-        else:
-            w = Workspace.load_workspace_script(filename=self.arguments[1])
+        wsexpr = self.arguments[1]
+        print "WSTYPE=",wstype
+        print "WSEXPR=",wsexpr
+        w = Workspace()
+        w.register_filters(module(wstype))
+        ctx = w.add_context(wstype,"root")
+        ctx.start()
+        w.setup_expression_network(wsexpr,ctx)
         # construct output array
         ncells = ds_in.GetNumberOfCells()
         dims = npy.array(ds_in.GetDimensions(),dtype=npy.int32)

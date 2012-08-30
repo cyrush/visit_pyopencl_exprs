@@ -29,3 +29,5 @@ try:
     import pyocl_compile
 except:
     pass
+
+from management import *

@@ -36,6 +36,7 @@ class PyOpenCLContext(Context):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
+        print msg
         info(msg)
         #queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
         queue = cl.CommandQueue(ctx)
@@ -328,7 +329,7 @@ class PyOpenCLPow(Filter):
                                 __global float *c)
             {
               int gid = get_global_id(0);
-              c[gid] = pow([gid], b[gid]);
+              c[gid] = pow(a[gid], b[gid]);
             }
             """
         return self.context.execute_kernel(kernel_source,inputs)
@@ -611,7 +612,7 @@ class PyOpenCLCurl2D(Filter):
     default_params = {}
     output_port    = True
     def execute(self):
-        inputs = [self.input("in_dfx"), 
+        inputs = [self.input("in_dfx"),
                   self.input("in_dfy")]
         kernel_source =  """
             __kernel void kmain(__global const float *dfx,
