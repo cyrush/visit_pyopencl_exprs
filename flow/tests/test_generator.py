@@ -94,7 +94,16 @@ class TestParser(unittest.TestCase):
         expr = "res = (v_a + v_b[0])^c_2 + (v_a  - v_b[1])^c_2"
         print "test_expr: " + expr
         w.setup_expression_network(expr)
+        print ""
+        print w.graph
+        print w.execution_plan()
+        act_res = w.execute()
         test_res = npy.power((v_a + v_b[:,0]),2.0)+ npy.power((v_a - v_b[:,1]),2.0)
+        dsum = npy.sum(act_res - test_res)
+        print "Filter Graph Result: %s" % str(act_res)
+        print "Test Result:         %s" % str(test_res)
+        print "Difference:          %s" % str(dsum)
+        self.assertTrue(dsum < 1e-6)
 
 if __name__ == '__main__':
     unittest.main()
