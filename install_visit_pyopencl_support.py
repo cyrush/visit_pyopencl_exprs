@@ -176,7 +176,7 @@ def setup_numpy(dest_dir=None):
     if os.path.isdir("numpy"):
         print "[removing existing source dir: `numpy']"
         shutil.rmtree("numpy")
-    npy_repo = "git://github.com/numpy/numpy.git"
+    npy_repo = "https://github.com/numpy/numpy.git"
     print "[cloning `numpy' github repo (%s)]" % npy_repo
     sexe('git clone %s' % npy_repo)
     patch_python_setup_file(pjoin("numpy","setup.py"),seed="import subprocess\n")
