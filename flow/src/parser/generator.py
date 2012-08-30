@@ -38,8 +38,8 @@ class Generator(object):
             if isinstance(expr,FuncCall):
                 args = cls.__create_network(expr.args,filters,count,vmaps)
                 fname = "f%d" % count[0]
-                print fname,"=", expr.name,"(",args,")"
-                filters.append([fname, FuncCall(expr.name, args)])
+                print fname,"=", expr.name,"(",args,",",expr.params,")"
+                filters.append([fname, FuncCall(expr.name, args, expr.params)])
                 res.append(Identifier(fname))
                 count[0]+=1
             if isinstance(expr,Assignment):
@@ -64,7 +64,7 @@ class Generator(object):
         for f in filters:
             fname = f[0]
             fcall = f[1]
-            ctx.add_filter(fcall.name,fname)
+            ctx.add_filter(fcall.name,fname,fcall.params)
             idx = 0
             for arg in fcall.args:
                 if isinstance(arg,Identifier):

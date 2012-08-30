@@ -34,14 +34,19 @@ import ply.yacc as yacc
 #------------------------------------------------------------------
 
 class FuncCall(object):
-    def __init__(self,name,args=None):
-        self.name = name
-        self.args = args
+    def __init__(self,name,args=None,params=None):
+        self.name   = name
+        self.args   = args
+        self.params = params
     def __str__(self):
-        if self.args is None:
-            return "%s()" % (self.name)
-        else:
-            return "%s(%s)" % (self.name, str(self.args))
+        res = self.name + "("
+        if not self.args is None:
+            res += str(self.args)
+        if not self.params is None:
+            if res[-1] != "(": res+= " , "
+            res +=  str(self.params)
+        res+= ")"
+        return res
     def __repr__(self):
        return str(self)
 
@@ -310,15 +315,18 @@ def p_func(t):
     """
     func : ID LPAREN args RPAREN
          | ID LPAREN RPAREN
-         | ID LBRACKET args RBRACKET
          | LBRACE args RBRACE
+         | ID LBRACKET INT RBRACKET
     """
     if t[2] == ")":
         t[0] = FuncCall(t[1].name)
     elif t[1] == "{":
         t[0] = FuncCall("compose",t[2])
     elif t[2] == "[":
-        t[0] = FuncCall("decompose",[t[1],t[3]])
+        # note, we will need better 'params' support in the
+        # future
+        t[0] = FuncCall("decompose",[t[1]],{"index":t[3]})
+        print t[0]
     else:
         t[0] = FuncCall(t[1].name, t[3])
 

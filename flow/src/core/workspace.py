@@ -355,9 +355,15 @@ class Workspace(object):
                     res = node.execute()
                 except Exception as e:
                     msg  = "Execute Error: %s" % node_name
-                    print msg
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    emsg = traceback.format_exception(exc_type,
+                                                      exc_value,
+                                                      exc_traceback)
+                    emsg = "".join(emsg)
                     info(msg)
-                    traceback.print_stack()
+                    info("\n<Traceback>\n" + emsg)
+                    print msg
+                    print "\n<Traceback>\n" + emsg
                     raise e
                 # if output exists, place in registry
                 if not res is None:
