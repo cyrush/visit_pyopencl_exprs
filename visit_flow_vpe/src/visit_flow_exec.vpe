@@ -28,13 +28,16 @@ class FlowExecExpr(SimplePythonExpression):
         # get workspace
         wstype = self.arguments[0]
         wsexpr = self.arguments[1]
-        print "WSTYPE=",wstype
-        print "WSEXPR=",wsexpr
-        w = Workspace()
-        w.register_filters(module(wstype))
-        ctx = w.add_context(wstype,"root")
-        ctx.start()
-        w.setup_expression_network(wsexpr,ctx)
+        print "WSTYPE: ", wstype
+        print "WSEXPR: ", wsexpr
+        if wstype == "src":
+            w = Workspace.load_workspace_script(src=self.arguments[1])
+        else:
+            w = Workspace()
+            w.register_filters(module(wstype))
+            ctx = w.add_context(wstype,"root")
+            ctx.start()
+            w.setup_expression_network(wsexpr,ctx)
         # construct output array
         ncells = ds_in.GetNumberOfCells()
         dims = npy.array(ds_in.GetDimensions(),dtype=npy.int32)
@@ -58,6 +61,7 @@ class FlowExecExpr(SimplePythonExpression):
                 ctx.set_device_id(mpicom.rank() % 2)
         # exec filter graph (returns last registry entry obj)
         # print w.execution_plan()
+        w.graph.save_dot("last.dot")
         r = w.execute()
         # check the active context to see if
         # are using pyocl_compile
