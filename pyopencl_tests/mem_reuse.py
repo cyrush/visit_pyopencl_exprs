@@ -7,8 +7,8 @@ import datetime
 from time import time
 
 import sys
-
 from common import *
+
 
 def exec_test(size):
     print "\nexec test w/ array size:%d" % size
@@ -35,6 +35,7 @@ def exec_test(size):
 
             mf = cl.mem_flags
             src_buf  = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=vin)
+            rw_buf   = cl.Buffer(ctx, mf.READ_WRITE, vout.nbytes)
             dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, vout.nbytes)
 
             prg = cl.Program(ctx, """
@@ -48,24 +49,30 @@ def exec_test(size):
             xfer_in_evnt =  cl.enqueue_copy(queue,src_buf,vin)
             xfer_in_evnt.wait()
             xin_e = elapsed(xfer_in_evnt)
-            exec_evt     =  prg.xfer(queue, vin.shape, None, src_buf, dest_buf)
+            print "xin:", xin_e
+            exec_evt     =  prg.xfer(queue, vin.shape, None, src_buf, rw_buf)
             exec_evt.wait()
             exe_e = elapsed(exec_evt)
+            iexe_evt     =  prg.xfer(queue, vin.shape, None, rw_buf, dest_buf)
+            iexe_evt.wait()
+            iexe_e = elapsed(iexe_evt)
+            print "kexe:", exe_e
             xfer_out_evnt = cl.enqueue_copy(queue, vout,dest_buf)
             xfer_out_evnt.wait()
             xout_e = elapsed(xfer_out_evnt)
-
-            tinfo(device.name,size,xin=xin_e,exe=exe_e,xout=xout_e)
+            print "xout:", xout_e
+            tinfo(device.name,size,xin=xin_e,exe=exe_e,iex=iexe_e,xout=xout_e)
             error = 0
             for i in range(size):
                     if vout[i] != vin[i]:
-                            error = 1
+                        error = 1
             if error:
                     print("Results doesn't match!!")
             else:
                     print("Results OK")
 
-
+def mb_2_nfloat32(mb):
+    return 1024*1024//4 * mb
 
 if __name__ == "__main__":
     szes = [8,26,128]
