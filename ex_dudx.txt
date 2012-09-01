@@ -1,2 +1,2 @@
-du = grad(vx,dims,x,y,z)
+du = grad(dims,x,y,z,vx)
 dudx = du[0]

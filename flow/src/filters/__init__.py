@@ -24,8 +24,9 @@ except:
 
 # check for import error only ...
 try:
-    # requires pyopencl
+    # these require pyopencl
     import pyocl_ops
+    import pyocl_batch
     import pyocl_compile
 except:
     pass

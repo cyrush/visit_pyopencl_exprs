@@ -7,7 +7,7 @@
          Maysam Moussalem <maysam@tacc.utexas.edu>
  created: 3/24/2012
  description:
-    Provides flow filters that execute PyOpenCL operations.
+    Provides flow filters that execute PyOpenCLOps operations.
 
 """
 
@@ -26,7 +26,7 @@ import pyocl_context
 def info(msg):
     log.info(msg,"filters.pyocl_ops")
 
-class PyOpenCLContext(Context):
+class PyOpenCLOpsContext(Context):
     context_type = "pyocl_ops"
     def start(self,dev_id = 0):
         pyocl_context.set_device_id(dev_id)
@@ -73,7 +73,7 @@ class PyOpenCLContext(Context):
                 return ipt.shape
         return None
 
-class PyOpenCLAdd(Filter):
+class PyOpenCLOpsAdd(Filter):
     filter_type    = "add"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -91,7 +91,7 @@ class PyOpenCLAdd(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLSub(Filter):
+class PyOpenCLOpsSub(Filter):
     filter_type    = "sub"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -109,7 +109,7 @@ class PyOpenCLSub(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLMult(Filter):
+class PyOpenCLOpsMult(Filter):
     filter_type    = "mult"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -127,7 +127,7 @@ class PyOpenCLMult(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLDiv(Filter):
+class PyOpenCLOpsDiv(Filter):
     filter_type    = "div"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -145,7 +145,7 @@ class PyOpenCLDiv(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLMod(Filter):
+class PyOpenCLOpsMod(Filter):
     filter_type    = "mod"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -163,7 +163,7 @@ class PyOpenCLMod(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLCos(Filter):
+class PyOpenCLOpsCos(Filter):
     filter_type    = "cos"
     input_ports    = ["in"]
     default_params = {}
@@ -180,7 +180,7 @@ class PyOpenCLCos(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLSin(Filter):
+class PyOpenCLOpsSin(Filter):
     filter_type    = "sin"
     input_ports    = ["in"]
     default_params = {}
@@ -197,7 +197,7 @@ class PyOpenCLSin(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLTan(Filter):
+class PyOpenCLOpsTan(Filter):
     filter_type    = "tan"
     input_ports    = ["in"]
     default_params = {}
@@ -214,7 +214,7 @@ class PyOpenCLTan(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLCeil(Filter):
+class PyOpenCLOpsCeil(Filter):
     filter_type    = "ceil"
     input_ports    = ["in"]
     default_params = {}
@@ -231,7 +231,7 @@ class PyOpenCLCeil(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLFloor(Filter):
+class PyOpenCLOpsFloor(Filter):
     filter_type    = "floor"
     input_ports    = ["in"]
     default_params = {}
@@ -248,7 +248,7 @@ class PyOpenCLFloor(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLAbs(Filter):
+class PyOpenCLOpsAbs(Filter):
     filter_type    = "abs"
     input_ports    = ["in"]
     default_params = {}
@@ -265,7 +265,7 @@ class PyOpenCLAbs(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLLog10(Filter):
+class PyOpenCLOpsLog10(Filter):
     filter_type    = "log10"
     input_ports    = ["in"]
     default_params = {}
@@ -282,7 +282,7 @@ class PyOpenCLLog10(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLLog(Filter):
+class PyOpenCLOpsLog(Filter):
     filter_type    = "log"
     input_ports    = ["in"]
     default_params = {}
@@ -299,7 +299,7 @@ class PyOpenCLLog(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLExp(Filter):
+class PyOpenCLOpsExp(Filter):
     filter_type    = "exp"
     input_ports    = ["in"]
     default_params = {}
@@ -316,7 +316,7 @@ class PyOpenCLExp(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLPow(Filter):
+class PyOpenCLOpsPow(Filter):
     filter_type    = "pow"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -334,7 +334,7 @@ class PyOpenCLPow(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLId(Filter):
+class PyOpenCLOpsId(Filter):
     filter_type    = "id"
     input_ports    = ["in"]
     default_params = {}
@@ -351,7 +351,7 @@ class PyOpenCLId(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLRound(Filter):
+class PyOpenCLOpsRound(Filter):
     filter_type    = "round"
     input_ports    = ["in"]
     default_params = {}
@@ -372,7 +372,7 @@ class PyOpenCLRound(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLSquare(Filter):
+class PyOpenCLOpsSquare(Filter):
     filter_type    = "square"
     input_ports    = ["in"]
     default_params = {}
@@ -389,7 +389,7 @@ class PyOpenCLSquare(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLSqrt(Filter):
+class PyOpenCLOpsSqrt(Filter):
     filter_type    = "sqrt"
     input_ports    = ["in"]
     default_params = {}
@@ -406,7 +406,7 @@ class PyOpenCLSqrt(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLArrayCompose(Filter):
+class PyOpenCLOpsArrayCompose(Filter):
     filter_type    = "compose"
     input_ports    = ["in_a","in_b"]
     default_params = {}
@@ -421,7 +421,7 @@ class PyOpenCLArrayCompose(Filter):
         res = npy.hstack((a,b))
         return res
 
-class PyOpenCLArrayDecompose(Filter):
+class PyOpenCLOpsArrayDecompose(Filter):
     filter_type    = "decompose"
     input_ports    = ["in"]
     default_params = {"index":0}
@@ -431,7 +431,7 @@ class PyOpenCLArrayDecompose(Filter):
         a = self.input("in")
         return npy.array(a[:,p.index])
 
-class PyOpenCLConst(Filter):
+class PyOpenCLOpsConst(Filter):
     filter_type    = "const"
     default_params = {"value":0}
     input_ports    = []
@@ -440,7 +440,7 @@ class PyOpenCLConst(Filter):
         p = self.params
         return p.value
 
-class PyOpenCLGrad2D(Filter):
+class PyOpenCLOpsGrad2D(Filter):
     filter_type    = "grad2d"
     input_ports    = ["in", "dims", "x", "y"]
     default_params = {}
@@ -504,7 +504,7 @@ class PyOpenCLGrad2D(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs,out_dims=2)
 
-class PyOpenCLGrad3D(Filter):
+class PyOpenCLOpsGrad3D(Filter):
     filter_type    = "grad"
     input_ports    = ["dims","x","y","z","in"]
     default_params = {}
@@ -606,7 +606,7 @@ class PyOpenCLGrad3D(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs,out_dim=3)
 
-class PyOpenCLCurl2D(Filter):
+class PyOpenCLOpsCurl2D(Filter):
     filter_type    = "curl2d"
     input_ports    = ["in_dfx", "in_dfy"]
     default_params = {}
@@ -627,7 +627,7 @@ class PyOpenCLCurl2D(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs)
 
-class PyOpenCLCurl3D(Filter):
+class PyOpenCLOpsCurl3D(Filter):
     filter_type    = "curl3d"
     input_ports    = ["in_dfx", "in_dfy", "in_dfz"]
     default_params = {}
@@ -660,32 +660,32 @@ class PyOpenCLCurl3D(Filter):
             """
         return self.context.execute_kernel(kernel_source,inputs,out_dim=3)
 
-filters = [PyOpenCLAdd,
-           PyOpenCLSub,
-           PyOpenCLMult,
-           PyOpenCLDiv,
-           PyOpenCLMod,
-           PyOpenCLCos,
-           PyOpenCLSin,
-           PyOpenCLTan,
-           PyOpenCLCeil,
-           PyOpenCLFloor,
-           PyOpenCLAbs,
-           PyOpenCLLog10,
-           PyOpenCLLog,
-           PyOpenCLExp,
-           PyOpenCLPow,
-           PyOpenCLId,
-           PyOpenCLRound,
-           PyOpenCLSquare,
-           PyOpenCLSqrt,
-           PyOpenCLArrayCompose,
-           PyOpenCLArrayDecompose,
-           PyOpenCLConst,
-           PyOpenCLGrad2D,
-           PyOpenCLGrad3D,
-           PyOpenCLCurl2D,
-           PyOpenCLCurl3D]
+filters = [PyOpenCLOpsAdd,
+           PyOpenCLOpsSub,
+           PyOpenCLOpsMult,
+           PyOpenCLOpsDiv,
+           PyOpenCLOpsMod,
+           PyOpenCLOpsCos,
+           PyOpenCLOpsSin,
+           PyOpenCLOpsTan,
+           PyOpenCLOpsCeil,
+           PyOpenCLOpsFloor,
+           PyOpenCLOpsAbs,
+           PyOpenCLOpsLog10,
+           PyOpenCLOpsLog,
+           PyOpenCLOpsExp,
+           PyOpenCLOpsPow,
+           PyOpenCLOpsId,
+           PyOpenCLOpsRound,
+           PyOpenCLOpsSquare,
+           PyOpenCLOpsSqrt,
+           PyOpenCLOpsArrayCompose,
+           PyOpenCLOpsArrayDecompose,
+           PyOpenCLOpsConst,
+           PyOpenCLOpsGrad2D,
+           PyOpenCLOpsGrad3D,
+           PyOpenCLOpsCurl2D,
+           PyOpenCLOpsCurl3D]
 
-contexts = [PyOpenCLContext]
+contexts = [PyOpenCLOpsContext]
 
