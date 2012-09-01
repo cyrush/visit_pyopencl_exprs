@@ -1,7 +1,0 @@
-du = grad(vx,dims,x,y,z)
-dv = grad(vy,dims,x,y,z)
-dw = grad(vz,dims,x,y,z)
-vort_x = dw[1] - dv[2]
-vort_y = du[2] - dw[0]
-vort_z = dv[0] - du[1]
-vort_mag = sqrt(vort_x^2 + vort_y^2 + vort_z^2)
