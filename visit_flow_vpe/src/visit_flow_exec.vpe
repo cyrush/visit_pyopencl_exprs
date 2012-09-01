@@ -71,6 +71,8 @@ class FlowExecExpr(SimplePythonExpression):
                 #if mpicom.rank() == 0:
                 #    print ctx.compile()
                 r = ctx.run()
+            elif ctx.context_type.count("batch") > 0:
+                r = r.read()
         # set result (results in a numpy data copy)
         out[:] = r
         return res

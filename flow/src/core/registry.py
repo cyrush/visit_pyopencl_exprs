@@ -63,6 +63,10 @@ class Registry(object):
                 res.uref +=-1
                 if res.uref == 0:
                     info("Registry remove_entry: %s uref=0" % key)
+                    try:
+                        res.obj.release()
+                    except:
+                        pass
                     del self.entries[key]
             return res.obj
         raise InvalidRegistryKeyError(key)
