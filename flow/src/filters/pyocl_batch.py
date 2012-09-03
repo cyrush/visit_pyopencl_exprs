@@ -33,24 +33,27 @@ class PyOpenCLBatchBuffer(object):
     def __init__(self,id,context,shape,dtype):
         self.context = context
         self.id = id
-        self.shape  = shape
+        self.shape     = shape
+        self.out_shape = shape
         self.dtype  = dtype
-        self.active = True
+        self.active = 2
         self.nbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
         ctx = pyocl_context.instance()
         self.cl_obj  = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, self.nbytes)
         log.info("PyOpenCLBatchBuffer create: " + str(self))
     def write(self,data):
+        log.info("PyOpenCLBatchBuffer write: " + str(self))
         return cl.enqueue_copy(self.context.queue(),self.cl_obj,data)
     def read(self):
+        log.info("PyOpenCLBatchBuffer read: " + str(self))
         # this is blocking ... 
-        res = npy.zeros(self.shape,dtype=self.dtype)
+        res = npy.zeros(self.out_shape,dtype=self.dtype)
         evnt = cl.enqueue_copy(self.context.queue(),res,self.cl_obj)
         evnt.wait()
         return res
     def release(self):
         log.info("PyOpenCLBatchBuffer release: " + str(self))
-        self.active = False
+        self.active = 1
     def __str__(self):
         return "(%d) %s %s" % (self.id,self.dtype,self.shape)
     @classmethod
@@ -63,14 +66,23 @@ class PyOpenCLBatchBuffer(object):
 class PyOpenCLBatchBufferPool(object):
     buffers = []
     @classmethod
+    def reset(cls):
+        # this should trigger cleanup
+        cls.buffers = []
+    @classmethod
     def request_buffer(cls,context,shape,dtype):
-        avail = [b for b in cls.buffers if b.active == False ] 
+        #if active = 0, the buffer is ready
+        avail = [b for b in cls.buffers if b.active == 0 ] 
+        #if active = 1, the buffer can be resued on the next request
+        for b in cls.buffers:
+            if b.active == 1: b.active = 0
         rbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
         for b in avail:
             # check if the buffer is big enough
             if b.nbytes > rbytes:
-                log.info("PyOpenCLBatchBufferPool reuse: " + str(self))
-                b.active = True
+                log.info("PyOpenCLBatchBufferPool reuse: " + str(b))
+                b.out_shape = shape
+                b.active = 2
                 return b
         # no suitable buffer, need to create a new one
         ctx = pyocl_context.instance()
@@ -83,6 +95,7 @@ class PyOpenCLBatchContext(Context):
     context_type = "pyocl_batch"
     def start(self,dev_id = 0):
         pyocl_context.set_device_id(dev_id)
+        PyOpenCLBatchBufferPool.reset()
         self.__queue = None
     def set_device_id(self,dev_id):
         pyocl_context.set_device_id(dev_id)
@@ -96,38 +109,24 @@ class PyOpenCLBatchContext(Context):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
-        info(msg)
         buffers = []
         vshape = self.__find_valid_shape(inputs)
         if out_dim is None:
             out_dim = vshape
         else:
             out_dim = (vshape[0],out_dim)
+        msg += "\n output_shape = " + str(vshape)
+        info(msg)
         for ipt in inputs:
             buffers.append(ipt.cl_obj)
-            #if not isinstance(ipt.data, npy.ndarray): # const case
-            #    ibf    = npy.zeros(out_dim,dtype=npy.float32)
-            #    ibf[:] = ipt.data
-            #else:
-            #    ibf = ipt.data
-            #buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ibf)
-        #res = npy.zeros(out_dim,dtype=npy.float32)
         dest_buf = PyOpenCLBatchBufferPool.request_buffer(self,out_dim,npy.float32)
-        #dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf.cl_obj)
         prg = cl.Program(ctx,kernel_source).build()
         prg.kmain(self.queue(), out_dim, None, *buffers)
-        #event = prg.kmain(queue, res.shape, None, *buffers)
-        #event.wait()
-        #cl.enqueue_copy(self.queue, res, dest_buf)
-        #elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
-        #                  event.get_profiling_info( cl.profiling_info.START))
-        #print("Execution time: %g s" % elapsed)
-        return dest_buf # pool.request_buff(res)
+        return dest_buf
     def __find_valid_shape(self,inputs):
         for ipt in inputs:
-            #if isinstance(ipt.data, npy.ndarray):
-                return ipt.shape
+            return ipt.out_shape
         return None
 
 class PyOpenCLBatchSource(Filter):
@@ -502,8 +501,10 @@ class PyOpenCLBatchArrayDecompose(Filter):
     def execute(self):
         p = self.params
         a = self.input("in")
-        #BufferPool.request_buffer(self.context,)
-        return #pool.request_buff(npy.array(a.data[:,p.index]))
+        data = a.read()
+        buf = PyOpenCLBatchBufferPool.request_buffer(self.context,(data.shape[0],),npy.float32)
+        buf.write(npy.array(data[:,p.index]))
+        return buf
 
 class PyOpenCLBatchConst(Filter):
     filter_type    = "const"
