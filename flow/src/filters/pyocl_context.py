@@ -38,7 +38,7 @@ def nbytes_mb_gb(nbytes):
 
 def nbytes_str(nbytes):
     mbytes,gbytes = nbytes_mb_gb(nbytes)
-    return "%d (MB: %s GB: %s)\n"  % (nbytes,repr(mbytes),repr(gbytes))
+    return "%d (MB: %s GB: %s)"  % (nbytes,repr(mbytes),repr(gbytes))
 
 
 class PyOpenCLContextEvent(object):
@@ -67,6 +67,7 @@ class PyOpenCLContextManager(object):
     dev_id   = 0
     ctx      = None
     ctx_info = ""
+    device   = None
     events   = []
     @classmethod
     def set_platform_id(cls,plat_id):
@@ -94,9 +95,13 @@ class PyOpenCLContextManager(object):
             cinfo += "  Device max clock speed: %s MHz\n" % device.max_clock_frequency
             cinfo += "  Device compute units: %s\n" % device.max_compute_units
             info(cinfo)
+            cls.device = device
             cls.ctx = cl.Context([device])
             cls.ctx_info = cinfo
         return cls.ctx
+    @classmethod
+    def device_memory(cls):
+        return cls.device.global_mem_size
     @classmethod
     def clear_events(cls):
         cls.events = []
@@ -143,10 +148,10 @@ class PyOpenCLContextManager(object):
             res += "  Total # of events: %d\n" % nevents
             res += "  Total queued to end: %s (s)\n" % repr(qte)
             res += "  Total start  to end: %s (s)\n" % repr(ste)
-            res += "  Total nbytes: %s\n" % nbytes(nbytes)
-            res += "  Total gb/s: %s [ngbytes / tste]\n" % repr(gbps)
+            res += "  Total nbytes: %s\n" % nbytes_str(nbytes)
+            res += "  Total gb/s: %s [ngbytes / ste]\n" % repr(gbps)
             res += "  Average nbytes: %s\n" % nbytes_str(avg_bytes)
-        res += "Total # of events: %d\n" % nevents
+        res += "Total # of events: %d\n" % tnevents
         res += "Total nbytes: %s\n" % nbytes_str(tbytes)
         res += "Total queued to end: %s (s)\n" % repr(tqte)
         ttag["total"] = {"nevents": tnevents,
@@ -160,6 +165,9 @@ def set_platform_id(idx):
 
 def set_device_id(idx):
     PyOpenCLContextManager.set_device_id(idx)
+
+def device_memory():
+    return PyOpenCLContextManager.device_memory()
 
 def clear_events():
     PyOpenCLContextManager.clear_events()
