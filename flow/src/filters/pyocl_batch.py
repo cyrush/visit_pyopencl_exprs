@@ -4,7 +4,7 @@
 """
  file: pyocl_batch.py
  author: Cyrus Harrison <cyrush@llnl.gov>
- 
+
  created: 9/1/2012
  description:
     Provides flow filters that execute PyOpenCLBatch operations.
@@ -45,22 +45,22 @@ class PyOpenCLBatchBuffer(object):
         nbytes = self.calc_nbytes(data.shape,data.dtype)
         log.info("PyOpenCLBatchBuffer write %s bytes to %s"  % (nbytes,str(self)))
         evnt = cl.enqueue_copy(self.context.queue(),self.cl_obj,data)
-        self.context.add_event("write (%d)" % self.id,evnt,nbytes)
+        pyocl_context.add_event("win",evnt,nbytes)
         return evnt
     def read(self):
         nbytes = self.calc_nbytes(self.out_shape,self.dtype)
         log.info("PyOpenCLBatchBuffer read %d bytes from %s " % (nbytes,str(self)))
-        # this is blocking ... 
+        # this is blocking ...
         res = npy.zeros(self.out_shape,dtype=self.dtype)
         evnt = cl.enqueue_copy(self.context.queue(),res,self.cl_obj)
-        self.context.add_event("read (%d)" % self.id,evnt,nbytes)
+        pyocl_context.add_event("rout",evnt,nbytes)
         evnt.wait()
         return res
     def release(self):
         log.info("PyOpenCLBatchBuffer release: " + str(self))
         self.active = 1
     def __str__(self):
-        return "(%d) dtype: %s, alloc_shape: %s, out_shape: %s" % (self.id,self.dtype,self.shape,self.out_shape)
+        return "(%d) dtype: %s, nbytes: %s, alloc_shape: %s, out_shape: %s" % (self.id,self.dtype,self.nbytes,self.shape,self.out_shape)
     @classmethod
     def calc_nbytes(cls,shape,dtype):
         res = npy.dtype(dtype).itemsize
@@ -73,11 +73,12 @@ class PyOpenCLBatchBufferPool(object):
     @classmethod
     def reset(cls):
         # this should trigger cleanup
+        cls.total_alloc = 0
         cls.buffers = []
     @classmethod
     def request_buffer(cls,context,shape,dtype):
         #if active = 0, the buffer is ready
-        avail = [b for b in cls.buffers if b.active == 0 ] 
+        avail = [b for b in cls.buffers if b.active == 0 ]
         #if active = 1, the buffer can be resued on the next request
         for b in cls.buffers:
             if b.active == 1: b.active = 0
@@ -92,27 +93,38 @@ class PyOpenCLBatchBufferPool(object):
                 return b
         # no suitable buffer, need to create a new one
         ctx = pyocl_context.instance()
-        b = PyOpenCLBatchBuffer(len(cls.buffers),context,shape,dtype)
-        cls.buffers.append(b)
-        return b
+        try:
+            b = PyOpenCLBatchBuffer(len(cls.buffers),context,shape,dtype)
+            cls.total_alloc += b.nbytes
+            msg  = "PyOpenCLBatchBufferPool total device memory alloced: "
+            msg += pyocl_context.nbytes_str(cls.total_alloc)
+            log.info(msg)
+            cls.buffers.append(b)
+            return b
+        except Exception as e:
+            print type(e)
+            msg  = "<ERROR>\nRan out device of memory while trying to alloc: "
+            msg += pyocl_context.nbytes_str(rbytes) + "\n"
+            msg += "Total device memory alloced: %s \n" % pyocl_context.nbytes_str(cls.total_alloc)
+            info(msg)
+            print msg
+            raise e
+
 
 
 class PyOpenCLBatchContext(Context):
     context_type = "pyocl_batch"
     def start(self,dev_id = 0):
         pyocl_context.set_device_id(dev_id)
+        pyocl_context.clear_events()
         PyOpenCLBatchBufferPool.reset()
         self.__queue = None
-        self.events   = []
     def set_device_id(self,dev_id):
         pyocl_context.set_device_id(dev_id)
-    def add_event(self,tag,evnt,nbytes = None):
-        self.events.append((tag,evnt,nbytes))
     def queue(self):
         if self.__queue is None:
             ctx = pyocl_context.instance()
-            #queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
-            self.__queue = cl.CommandQueue(ctx)
+            self.__queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
         return self.__queue
     def execute_kernel(self,kernel_source,inputs,out_dim=None):
         ctx = pyocl_context.instance()
@@ -142,8 +154,10 @@ class PyOpenCLBatchContext(Context):
         buffers.append(dest_buf.cl_obj)
         prg = cl.Program(ctx,kernel_source).build()
         evnt = prg.kmain(self.queue(), out_shape, None, *buffers)
-        self.add_event("kmain",evnt)
+        pyocl_context.add_event("kmain",evnt)
         return dest_buf
+    def events_summary(self):
+        return pyocl_context.events_summary()
     def __find_valid_shape(self,inputs):
         for ipt in inputs:
             if isinstance(ipt,PyOpenCLBatchBuffer):
@@ -546,6 +560,22 @@ class PyOpenCLBatchConst(Filter):
     def execute(self):
         p = self.params
         return p.value
+
+#class PyOpenCLBatchConst(Filter):
+    #filter_type    = "const"
+    #default_params = {"value":0.0}
+    #input_ports    = []
+    #output_port    = True
+    #def execute(self):
+        #p = self.params
+        #kernel_source =  """
+            #__kernel void kmain(__global float *o)
+            #{
+              #o[get_global_id(0)] =  %s;
+            #}
+            #""" % str(p.value)
+        #return self.context.execute_kernel(kernel_source,inputs)
+
 
 class PyOpenCLBatchGrad2D(Filter):
     filter_type    = "grad2d"

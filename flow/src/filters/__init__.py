@@ -19,16 +19,17 @@ import imagick
 try:
     # requires numpy
     import npy_ops
-except:
+except ImportError as e:
     pass
 
 # check for import error only ...
 try:
     # these require pyopencl
+    import pyocl_context
     import pyocl_ops
     import pyocl_batch
     import pyocl_compile
-except:
+except ImportError as e:
     pass
 
 from management import *

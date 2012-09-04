@@ -64,7 +64,7 @@ class FlowExecExpr(SimplePythonExpression):
         w.graph.save_dot("last.dot")
         r = w.execute()
         # check the active context to see if
-        # are using pyocl_compile
+        # are using pyocl_{ops,batch,compile}
         if w.has_context("root"):
             if ctx.context_type.count("compile") > 0:
                 ctx.set_output_shape((ncells,))
@@ -73,6 +73,7 @@ class FlowExecExpr(SimplePythonExpression):
                 r = ctx.run()
             elif ctx.context_type.count("batch") > 0:
                 r = r.read()
+            print ctx.events_summary()
         # set result (results in a numpy data copy)
         out[:] = r
         return res

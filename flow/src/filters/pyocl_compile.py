@@ -34,6 +34,7 @@ class PyOpenCLCompileContext(Context):
         self.inputs  = []
         self.out_shape = None
         pyocl_context.set_device_id(dev_id)
+        pyocl_context.clear_events()
     def set_device_id(self,dev_id):
         pyocl_context.set_device_id(dev_id)
     def bind_data(self,obj):
@@ -108,28 +109,27 @@ class PyOpenCLCompileContext(Context):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
-        print msg
         info(msg)
-        #queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
-        queue = cl.CommandQueue(ctx)
+        queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
         mf    = cl.mem_flags
         buffers = []
         for ipt in inputs:
             buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
+            buf = cl.Buffer(ctx, mf.READ_ONLY,ipt.nbytes)
+            win_evnt = cl.enqueue_copy(queue, buf, ipt)
+            pyocl_context.add_event("win",win_evnt,ipt.nbytes)
             buffers.append(buf)
         res = npy.zeros(self.out_shape,dtype=npy.float32)
         dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
         buffers.append(dest_buf)
         prg = cl.Program(ctx,kernel_source).build()
-        prg.kmain(queue, res.shape, None, *buffers)
-        #event = prg.kmain(queue, res.shape, None, *buffers)
-        #event.wait()
-        cl.enqueue_copy(queue, res, dest_buf)
-        #elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
-        #                  event.get_profiling_info( cl.profiling_info.START))
-        #print("Execution time: %g s" % elapsed)
+        exe_evnt  = prg.kmain(queue, res.shape, None, *buffers)
+        rout_evnt = cl.enqueue_copy(queue, res, dest_buf)
+        pyocl_context.add_event("kexe",exe_evnt)
+        pyocl_context.add_event("rout",rout_evnt,res.nbytes)
         return res
-
+    def events_summary(self):
+        return pyocl_context.events_summary()
 
 class PyOpenCLCompileSource(Filter):
     # overrides standard RegistrySource
