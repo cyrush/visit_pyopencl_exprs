@@ -37,7 +37,7 @@ def nbytes_mb_gb(nbytes):
     return mbytes, gbytes
 
 def nbytes_str(nbytes):
-    mbytes,gbytes = nbytes_mb_gb(nbytes)
+    mbytes, gbytes = nbytes_mb_gb(nbytes)
     return "%d (MB: %s GB: %s)"  % (nbytes,repr(mbytes),repr(gbytes))
 
 

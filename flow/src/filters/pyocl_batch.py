@@ -10,8 +10,10 @@
     Provides flow filters that execute PyOpenCLBatch operations.
 
 """
-# import logging
-# logging.basicConfig(level=logging.INFO)
+import logging
+#logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
+
 
 # Guarded import of pyopencl
 found_pyopencl = False
@@ -28,6 +30,9 @@ import pyocl_context
 def info(msg):
     log.info(msg,"filters.pyocl_batch")
 
+def err(msg):
+    log.error(msg,"filters.pyocl_batch")
+
 
 class PyOpenCLBatchBuffer(object):
     def __init__(self,id,context,shape,dtype):
@@ -40,7 +45,7 @@ class PyOpenCLBatchBuffer(object):
         ctx = pyocl_context.instance()
         self.cl_obj  = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, self.nbytes)
         self.__active = 2
-        log.info("PyOpenCLBatchBuffer create: " + str(self))
+        info("PyOpenCLBatchBuffer create: " + str(self))
     def active(self):
         return self.__active == 2
     def released(self):
@@ -49,13 +54,13 @@ class PyOpenCLBatchBuffer(object):
         return self.__active == 0
     def write(self,data):
         nbytes = self.calc_nbytes(data.shape,data.dtype)
-        log.info("PyOpenCLBatchBuffer write %s bytes to %s"  % (nbytes,str(self)))
+        info("PyOpenCLBatchBuffer write %s bytes to %s"  % (nbytes,str(self)))
         evnt = cl.enqueue_copy(self.context.queue(),self.cl_obj,data)
         pyocl_context.add_event("win",evnt,nbytes)
         return evnt
     def read(self):
         nbytes = self.calc_nbytes(self.out_shape,self.dtype)
-        log.info("PyOpenCLBatchBuffer read %d bytes from %s " % (nbytes,str(self)))
+        info("PyOpenCLBatchBuffer read %d bytes from %s " % (nbytes,str(self)))
         # this is blocking ...
         res = npy.zeros(self.out_shape,dtype=self.dtype)
         evnt = cl.enqueue_copy(self.context.queue(),res,self.cl_obj)
@@ -63,7 +68,7 @@ class PyOpenCLBatchBuffer(object):
         evnt.wait()
         return res
     def release(self):
-        log.info("PyOpenCLBatchBuffer release: " + str(self))
+        info("PyOpenCLBatchBuffer release: " + str(self))
         self.__active = 1
     def reclaim(self):
         self.__active = 0
@@ -90,24 +95,34 @@ class PyOpenCLBatchBufferPool(object):
         cls.buffers     = []
     @classmethod
     def available_device_memory(cls,percentage=False):
-        devm = pyocl_context.device_memory() 
+        devm = pyocl_context.device_memory()
         res  = devm - cls.total_alloc
         if percentage:
-            res = float(res) / float(devm)
+            res = round(100.0 * (float(res) / float(devm)),2)
         return res
     @classmethod
     def request_buffer(cls,context,shape,dtype):
         avail   = [b for b in cls.buffers if b.available()]
         rbytes  = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
         res_buf = None
+        # first check for exact buffer size match
         for b in avail:
             # check if the buffer is big enough
-            if b.nbytes >= rbytes:
+            if b.nbytes == rbytes:
                 # we can reuse
-                log.info("PyOpenCLBatchBufferPool reuse: " + str(b))
+                info("PyOpenCLBatchBufferPool reuse: " + str(b))
                 b.reactivate(shape,dtype)
                 res_buf = b
                 break
+        if res_buf is None:
+            for b in avail:
+                # now simply check if the buffer is big enough
+                if b.nbytes >= rbytes:
+                    # we can reuse
+                    info("PyOpenCLBatchBufferPool reuse: " + str(b))
+                    b.reactivate(shape,dtype)
+                    res_buf = b
+                    break
         if res_buf is None:
             res_buf = cls.__create_buffer(context,shape,dtype)
         cls.__release()
@@ -122,10 +137,12 @@ class PyOpenCLBatchBufferPool(object):
         if rbytes > cls.available_device_memory():
             cls.__reap(rbytes)
             if rbytes > cls.available_device_memory():
-                msg = "<ERROR> Reap failed\n\n request: %s\n result: %s"
-                msg = msg % (pyocl_context.nbytes_str(rbytes),
-                         pyocl_context.nbytes_str(avail_bytes))
-                log.info(msg)
+                msg  = "Reap failed\n"
+                msg += " Free Request:       %s\n" % pyocl_context.nbytes_str(rbytes)
+                msg += " Result:             %s "  % pyocl_context.nbytes_str(cls.available_device_memory())
+                msg += "(" + repr(cls.available_device_memory(True)) + " %)\n"
+                msg += "Total Device Memory: %s\n" % pyocl_context.nbytes_str(pyocl_context.device_memory())
+                err(msg)
         res = PyOpenCLBatchBuffer(len(cls.buffers),context,shape,dtype)
         cls.total_alloc += res.nbytes
         msg  = "PyOpenCLBatchBufferPool total device memory alloced: "
@@ -133,14 +150,14 @@ class PyOpenCLBatchBufferPool(object):
         msg += "PyOpenCLBatchBufferPool avaliable device memory: "
         msg += pyocl_context.nbytes_str(cls.available_device_memory())
         msg += " (" + repr(cls.available_device_memory(True)) + "%)\n"
-        log.info(msg)
+        info(msg)
         cls.buffers.append(res)
         return res
     @classmethod
     def __release(cls):
         #if released(), the buffer is avail for the next request
         for b in cls.buffers:
-            if b.released(): 
+            if b.released():
                 b.reclaim()
     @classmethod
     def __reap(cls,nbytes):
@@ -156,7 +173,7 @@ class PyOpenCLBatchBufferPool(object):
         del avail
         msg  = "PyOpenCLBatchBufferPool reclaimed alloced: "
         msg += pyocl_context.nbytes_str(rbytes)
-        log.info(msg)
+        info(msg)
 
 
 
