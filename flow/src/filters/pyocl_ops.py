@@ -33,6 +33,8 @@ class PyOpenCLOpsContext(Context):
         pyocl_context.clear_events()
     def set_device_id(self,dev_id):
         pyocl_context.set_device_id(dev_id)
+    def set_output_shape(self,shape):
+        self.out_shape = shape
     def execute_kernel(self,kernel_source,inputs,out_dim=None):
         ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"

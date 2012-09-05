@@ -60,12 +60,13 @@ class FlowExecExpr(SimplePythonExpression):
         # exec filter graph (returns last registry entry obj)
         # print w.execution_plan()
         w.graph.save_dot("last.dot")
+        if w.has_context("root"):
+            ctx.set_output_shape((ncells,))
         r = w.execute()
         # check the active context to see if
         # are using pyocl_{ops,batch,compile}
         if w.has_context("root"):
             if ctx.context_type.count("compile") > 0:
-                ctx.set_output_shape((ncells,))
                 #if mpicom.rank() == 0:
                 #    print ctx.compile()
                 r = ctx.run()

@@ -169,6 +169,8 @@ class PyOpenCLBatchContext(Context):
         self.__queue = None
     def set_device_id(self,dev_id):
         pyocl_context.set_device_id(dev_id)
+    def set_output_shape(self,shape):
+        self.out_shape = shape
     def queue(self):
         if self.__queue is None:
             ctx = pyocl_context.instance()
@@ -190,14 +192,7 @@ class PyOpenCLBatchContext(Context):
                 out_shape = (vshape[0],out_dim)
         info("Execute Kernel: out_shape = " + str(out_shape))
         for ipt in inputs:
-            if isinstance(ipt,PyOpenCLBatchBuffer):
                 buffers.append(ipt.cl_obj)
-            else:
-                cary = npy.zeros(out_shape,dtype=npy.float32)
-                cary.fill(ipt)
-                const_buf = PyOpenCLBatchBufferPool.request_buffer(self,out_shape,npy.float32)
-                const_buf.write(cary)
-                buffers.append(const_buf.cl_obj)
         dest_buf = PyOpenCLBatchBufferPool.request_buffer(self,out_shape,npy.float32)
         buffers.append(dest_buf.cl_obj)
         prg = cl.Program(ctx,kernel_source).build()
@@ -208,9 +203,8 @@ class PyOpenCLBatchContext(Context):
         return pyocl_context.events_summary()
     def __find_valid_shape(self,inputs):
         for ipt in inputs:
-            if isinstance(ipt,PyOpenCLBatchBuffer):
-                return ipt.out_shape
-        return None
+            return ipt.out_shape
+        return self.out_shape
 
 class PyOpenCLBatchSource(Filter):
     # overrides standard RegistrySource
@@ -584,9 +578,6 @@ class PyOpenCLBatchArrayDecompose(Filter):
     def execute(self):
         p = self.params
         a = self.input("in")
-        #data = a.read()
-        #buf = PyOpenCLBatchBufferPool.request_buffer(self.context,(data.shape[0],),npy.float32)
-        #buf.write(npy.array(data[:,p.index]))
         inputs = [a]
         dim = a.shape[1]
         idx = p.index
@@ -600,30 +591,21 @@ class PyOpenCLBatchArrayDecompose(Filter):
             """ % (dim,idx)
         return self.context.execute_kernel(kernel_source,inputs,1)
 
+
 class PyOpenCLBatchConst(Filter):
     filter_type    = "const"
-    default_params = {"value":0}
+    default_params = {"value":0.0}
     input_ports    = []
     output_port    = True
     def execute(self):
         p = self.params
-        return p.value
-
-#class PyOpenCLBatchConst(Filter):
-    #filter_type    = "const"
-    #default_params = {"value":0.0}
-    #input_ports    = []
-    #output_port    = True
-    #def execute(self):
-        #p = self.params
-        #kernel_source =  """
-            #__kernel void kmain(__global float *o)
-            #{
-              #o[get_global_id(0)] =  %s;
-            #}
-            #""" % str(p.value)
-        #return self.context.execute_kernel(kernel_source,inputs)
-
+        kernel_source =  """
+            __kernel void kmain(__global float *o)
+            {
+              o[get_global_id(0)] =  %s;
+            }
+            """ % str(p.value)
+        return self.context.execute_kernel(kernel_source,[])
 
 class PyOpenCLBatchGrad2D(Filter):
     filter_type    = "grad2d"
