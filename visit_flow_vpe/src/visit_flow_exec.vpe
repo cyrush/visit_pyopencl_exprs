@@ -28,8 +28,6 @@ class FlowExecExpr(SimplePythonExpression):
         # get workspace
         wstype = self.arguments[0]
         wsexpr = self.arguments[1]
-        print "WSTYPE: ", wstype
-        print "WSEXPR: ", wsexpr
         if wstype == "src":
             w = Workspace.load_workspace_script(src=self.arguments[1])
         else:

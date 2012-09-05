@@ -326,7 +326,6 @@ def p_func(t):
         # note, we will need better 'params' support in the
         # future
         t[0] = FuncCall("decompose",[t[1]],{"index":t[3]})
-        print t[0]
     else:
         t[0] = FuncCall(t[1].name, t[3])
 

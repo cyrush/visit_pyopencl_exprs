@@ -10,8 +10,8 @@
     Provides flow filters that execute PyOpenCLBatch operations.
 
 """
-import logging
-logging.basicConfig(level=logging.INFO)
+# import logging
+# logging.basicConfig(level=logging.INFO)
 
 # Guarded import of pyopencl
 found_pyopencl = False
@@ -36,11 +36,17 @@ class PyOpenCLBatchBuffer(object):
         self.shape     = shape
         self.out_shape = shape
         self.dtype  = dtype
-        self.active = 2
         self.nbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
         ctx = pyocl_context.instance()
         self.cl_obj  = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, self.nbytes)
+        self.__active = 2
         log.info("PyOpenCLBatchBuffer create: " + str(self))
+    def active(self):
+        return self.__active == 2
+    def released(self):
+        return self.__active == 1
+    def available(self):
+        return self.__active == 0
     def write(self,data):
         nbytes = self.calc_nbytes(data.shape,data.dtype)
         log.info("PyOpenCLBatchBuffer write %s bytes to %s"  % (nbytes,str(self)))
@@ -58,7 +64,13 @@ class PyOpenCLBatchBuffer(object):
         return res
     def release(self):
         log.info("PyOpenCLBatchBuffer release: " + str(self))
-        self.active = 1
+        self.__active = 1
+    def reclaim(self):
+        self.__active = 0
+    def reactivate(self,out_shape,dtype):
+        self.out_shape = out_shape
+        self.dtype     = dtype
+        self.__active  = 2
     def __str__(self):
         return "(%d) dtype: %s, nbytes: %s, alloc_shape: %s, out_shape: %s" % (self.id,self.dtype,self.nbytes,self.shape,self.out_shape)
     @classmethod
@@ -69,46 +81,82 @@ class PyOpenCLBatchBuffer(object):
         return res;
 
 class PyOpenCLBatchBufferPool(object):
-    buffers = []
+    buffers     = []
+    total_alloc = 0
     @classmethod
     def reset(cls):
         # this should trigger cleanup
         cls.total_alloc = 0
-        cls.buffers = []
+        cls.buffers     = []
+    @classmethod
+    def available_device_memory(cls,percentage=False):
+        devm = pyocl_context.device_memory() 
+        res  = devm - cls.total_alloc
+        if percentage:
+            res = float(res) / float(devm)
+        return res
     @classmethod
     def request_buffer(cls,context,shape,dtype):
-        #if active = 0, the buffer is ready
-        avail = [b for b in cls.buffers if b.active == 0 ]
-        #if active = 1, the buffer can be resued on the next request
-        for b in cls.buffers:
-            if b.active == 1: b.active = 0
-        rbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
+        avail   = [b for b in cls.buffers if b.available()]
+        rbytes  = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
+        res_buf = None
         for b in avail:
             # check if the buffer is big enough
-            if b.nbytes > rbytes:
+            if b.nbytes >= rbytes:
+                # we can reuse
                 log.info("PyOpenCLBatchBufferPool reuse: " + str(b))
-                b.out_shape = shape
-                b.dtype     = dtype
-                b.active    = 2
-                return b
-        # no suitable buffer, need to create a new one
+                b.reactivate(shape,dtype)
+                res_buf = b
+                break
+        if res_buf is None:
+            res_buf = cls.__create_buffer(context,shape,dtype)
+        cls.__release()
+        return res_buf
+    @classmethod
+    def __create_buffer(cls,context,shape,dtype):
+        # no suitable buffer, we need to create a new one
         ctx = pyocl_context.instance()
-        try:
-            b = PyOpenCLBatchBuffer(len(cls.buffers),context,shape,dtype)
-            cls.total_alloc += b.nbytes
-            msg  = "PyOpenCLBatchBufferPool total device memory alloced: "
-            msg += pyocl_context.nbytes_str(cls.total_alloc)
-            log.info(msg)
-            cls.buffers.append(b)
-            return b
-        except Exception as e:
-            print type(e)
-            msg  = "<ERROR>\nRan out device of memory while trying to alloc: "
-            msg += pyocl_context.nbytes_str(rbytes) + "\n"
-            msg += "Total device memory alloced: %s \n" % pyocl_context.nbytes_str(cls.total_alloc)
-            info(msg)
-            print msg
-            raise e
+        rbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
+        # see if we have enough bytes left on the device
+        # if not, try to  reclaim some memory from released buffers
+        if rbytes > cls.available_device_memory():
+            cls.__reap(rbytes)
+            if rbytes > cls.available_device_memory():
+                msg = "<ERROR> Reap failed\n\n request: %s\n result: %s"
+                msg = msg % (pyocl_context.nbytes_str(rbytes),
+                         pyocl_context.nbytes_str(avail_bytes))
+                log.info(msg)
+        res = PyOpenCLBatchBuffer(len(cls.buffers),context,shape,dtype)
+        cls.total_alloc += res.nbytes
+        msg  = "PyOpenCLBatchBufferPool total device memory alloced: "
+        msg += pyocl_context.nbytes_str(cls.total_alloc) +"\n"
+        msg += "PyOpenCLBatchBufferPool avaliable device memory: "
+        msg += pyocl_context.nbytes_str(cls.available_device_memory())
+        msg += " (" + repr(cls.available_device_memory(True)) + "%)\n"
+        log.info(msg)
+        cls.buffers.append(res)
+        return res
+    @classmethod
+    def __release(cls):
+        #if released(), the buffer is avail for the next request
+        for b in cls.buffers:
+            if b.released(): 
+                b.reclaim()
+    @classmethod
+    def __reap(cls,nbytes):
+        rbytes = 0
+        avail  = [b for b in cls.buffers if b.available()]
+        for b in avail:
+            cls.total_alloc -= b.nbytes
+            rbytes += b.nbytes
+            cls.buffers.remove(b)
+            if cls.available_device_memory() >= nbytes:
+                # we have enough mem, so break
+                break
+        del avail
+        msg  = "PyOpenCLBatchBufferPool reclaimed alloced: "
+        msg += pyocl_context.nbytes_str(rbytes)
+        log.info(msg)
 
 
 

@@ -48,7 +48,7 @@ def define_flow_vpe(ename,expr,filter_set="pyocl_ops"):
     # get root vars & use as expr args
     evars = w.filter_names()
     evars = [ evar[1:] for evar in evars if evar[0] == ":" and evar != ":dims"]
-    print "evars: " , evars
+    #print "evars: " , evars
     args.extend(evars)
     expr_escaped = escape_src(expr)
     args.extend(['"'+ filter_set +  '"','"' + expr_escaped+ '"'])

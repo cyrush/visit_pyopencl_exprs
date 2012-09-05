@@ -116,7 +116,6 @@ class PyOpenCLContextManager(object):
         tqte     = 0.0
         tnevents = len(cls.events)
         for e in cls.events:
-            res    += e.summary()
             tbytes += e.nbytes
             tqte   += e.queued_to_end()
             if e.tag in ttag.keys():
