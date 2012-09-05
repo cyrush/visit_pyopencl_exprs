@@ -25,7 +25,7 @@ except ImportError:
     pass
 
 from ..core import Filter, Context, log
-import pyocl_context
+import pyocl_env
 
 def info(msg):
     log.info(msg,"filters.pyocl_batch")
@@ -34,171 +34,19 @@ def err(msg):
     log.error(msg,"filters.pyocl_batch")
 
 
-class PyOpenCLBatchBuffer(object):
-    def __init__(self,id,context,shape,dtype):
-        self.context = context
-        self.id = id
-        self.shape     = shape
-        self.out_shape = shape
-        self.dtype  = dtype
-        self.nbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
-        ctx = pyocl_context.instance()
-        self.cl_obj  = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, self.nbytes)
-        self.__active = 2
-        info("PyOpenCLBatchBuffer create: " + str(self))
-    def active(self):
-        return self.__active == 2
-    def released(self):
-        return self.__active == 1
-    def available(self):
-        return self.__active == 0
-    def write(self,data):
-        nbytes = self.calc_nbytes(data.shape,data.dtype)
-        info("PyOpenCLBatchBuffer write %s bytes to %s"  % (nbytes,str(self)))
-        evnt = cl.enqueue_copy(self.context.queue(),self.cl_obj,data)
-        pyocl_context.add_event("win",evnt,nbytes)
-        return evnt
-    def read(self):
-        nbytes = self.calc_nbytes(self.out_shape,self.dtype)
-        info("PyOpenCLBatchBuffer read %d bytes from %s " % (nbytes,str(self)))
-        # this is blocking ...
-        res = npy.zeros(self.out_shape,dtype=self.dtype)
-        evnt = cl.enqueue_copy(self.context.queue(),res,self.cl_obj)
-        pyocl_context.add_event("rout",evnt,nbytes)
-        evnt.wait()
-        return res
-    def release(self):
-        info("PyOpenCLBatchBuffer release: " + str(self))
-        self.__active = 1
-    def reclaim(self):
-        self.__active = 0
-    def reactivate(self,out_shape,dtype):
-        self.out_shape = out_shape
-        self.dtype     = dtype
-        self.__active  = 2
-    def __str__(self):
-        return "(%d) dtype: %s, nbytes: %s, alloc_shape: %s, out_shape: %s" % (self.id,self.dtype,self.nbytes,self.shape,self.out_shape)
-    @classmethod
-    def calc_nbytes(cls,shape,dtype):
-        res = npy.dtype(dtype).itemsize
-        for s in shape:
-            res*=s;
-        return res;
-
-class PyOpenCLBatchBufferPool(object):
-    buffers     = []
-    total_alloc = 0
-    @classmethod
-    def reset(cls):
-        # this should trigger cleanup
-        cls.total_alloc = 0
-        cls.buffers     = []
-    @classmethod
-    def available_device_memory(cls,percentage=False):
-        devm = pyocl_context.device_memory()
-        res  = devm - cls.total_alloc
-        if percentage:
-            res = round(100.0 * (float(res) / float(devm)),2)
-        return res
-    @classmethod
-    def request_buffer(cls,context,shape,dtype):
-        avail   = [b for b in cls.buffers if b.available()]
-        rbytes  = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
-        res_buf = None
-        # first check for exact buffer size match
-        for b in avail:
-            # check if the buffer is big enough
-            if b.nbytes == rbytes:
-                # we can reuse
-                info("PyOpenCLBatchBufferPool reuse: " + str(b))
-                b.reactivate(shape,dtype)
-                res_buf = b
-                break
-        if res_buf is None:
-            for b in avail:
-                # now simply check if the buffer is big enough
-                if b.nbytes >= rbytes:
-                    # we can reuse
-                    info("PyOpenCLBatchBufferPool reuse: " + str(b))
-                    b.reactivate(shape,dtype)
-                    res_buf = b
-                    break
-        if res_buf is None:
-            res_buf = cls.__create_buffer(context,shape,dtype)
-        cls.__release()
-        return res_buf
-    @classmethod
-    def __create_buffer(cls,context,shape,dtype):
-        # no suitable buffer, we need to create a new one
-        ctx = pyocl_context.instance()
-        rbytes = PyOpenCLBatchBuffer.calc_nbytes(shape,dtype)
-        # see if we have enough bytes left on the device
-        # if not, try to  reclaim some memory from released buffers
-        if rbytes > cls.available_device_memory():
-            cls.__reap(rbytes)
-            if rbytes > cls.available_device_memory():
-                msg  = "Reap failed\n"
-                msg += " Free Request:       %s\n" % pyocl_context.nbytes_str(rbytes)
-                msg += " Result:             %s "  % pyocl_context.nbytes_str(cls.available_device_memory())
-                msg += "(" + repr(cls.available_device_memory(True)) + " %)\n"
-                msg += "Total Device Memory: %s\n" % pyocl_context.nbytes_str(pyocl_context.device_memory())
-                err(msg)
-        res = PyOpenCLBatchBuffer(len(cls.buffers),context,shape,dtype)
-        cls.total_alloc += res.nbytes
-        msg  = "PyOpenCLBatchBufferPool total device memory alloced: "
-        msg += pyocl_context.nbytes_str(cls.total_alloc) +"\n"
-        msg += "PyOpenCLBatchBufferPool avaliable device memory: "
-        msg += pyocl_context.nbytes_str(cls.available_device_memory())
-        msg += " (" + repr(cls.available_device_memory(True)) + "%)\n"
-        info(msg)
-        cls.buffers.append(res)
-        return res
-    @classmethod
-    def __release(cls):
-        #if released(), the buffer is avail for the next request
-        for b in cls.buffers:
-            if b.released():
-                b.reclaim()
-    @classmethod
-    def __reap(cls,nbytes):
-        rbytes = 0
-        avail  = [b for b in cls.buffers if b.available()]
-        for b in avail:
-            cls.total_alloc -= b.nbytes
-            rbytes += b.nbytes
-            cls.buffers.remove(b)
-            if cls.available_device_memory() >= nbytes:
-                # we have enough mem, so break
-                break
-        del avail
-        msg  = "PyOpenCLBatchBufferPool reclaimed alloced: "
-        msg += pyocl_context.nbytes_str(rbytes)
-        info(msg)
-
-
-
 class PyOpenCLBatchContext(Context):
     context_type = "pyocl_batch"
     def start(self,dev_id = 0):
-        pyocl_context.set_device_id(dev_id)
-        pyocl_context.clear_events()
-        PyOpenCLBatchBufferPool.reset()
-        self.__queue = None
+        pyocl_env.Manager.set_device_id(dev_id)
+        pyocl_env.Manager.clear_events()
+        pyocl_env.Pool.reset()
     def set_device_id(self,dev_id):
-        pyocl_context.set_device_id(dev_id)
+        pyocl_env.Manager.set_device_id(dev_id)
     def set_output_shape(self,shape):
         self.out_shape = shape
-    def queue(self):
-        if self.__queue is None:
-            ctx = pyocl_context.instance()
-            self.__queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
-        return self.__queue
     def execute_kernel(self,kernel_source,inputs,out_dim=None):
-        ctx = pyocl_context.instance()
-        msg  = "Execute Kernel:\n"
-        msg += kernel_source
-        info(msg)
         buffers = []
+        buffers.extend(inputs)
         vshape = self.__find_valid_shape(inputs)
         if out_dim is None:
             out_shape = vshape
@@ -207,17 +55,18 @@ class PyOpenCLBatchContext(Context):
                 out_shape = (vshape[0],)
             else:
                 out_shape = (vshape[0],out_dim)
+        msg  = "Execute Kernel:\n"
+        msg += kernel_source
+        info(msg)
         info("Execute Kernel: out_shape = " + str(out_shape))
-        for ipt in inputs:
-                buffers.append(ipt.cl_obj)
-        dest_buf = PyOpenCLBatchBufferPool.request_buffer(self,out_shape,npy.float32)
-        buffers.append(dest_buf.cl_obj)
-        prg = cl.Program(ctx,kernel_source).build()
-        evnt = prg.kmain(self.queue(), out_shape, None, *buffers)
-        pyocl_context.add_event("kmain",evnt)
+        dest_buf = pyocl_env.Pool.request_buffer(out_shape,npy.float32)
+        buffers.append(dest_buf)
+        evnt = pyocl_env.Manager.dispatch_kernel(kernel_source,
+                                                 out_shape,
+                                                 buffers)
         return dest_buf
     def events_summary(self):
-        return pyocl_context.events_summary()
+        return pyocl_env.Manager.events_summary()
     def __find_valid_shape(self,inputs):
         for ipt in inputs:
             return ipt.out_shape
@@ -234,7 +83,7 @@ class PyOpenCLBatchSource(Filter):
         # the instance name determines the reg entry_key
         key  = self.name[self.name.rfind(":"):]
         data = self.context.registry_fetch(key)
-        buf = PyOpenCLBatchBufferPool.request_buffer(self.context,data.shape,data.dtype)
+        buf = pyocl_env.Pool.request_buffer(data.shape,data.dtype)
         buf.write(data)
         return buf
 

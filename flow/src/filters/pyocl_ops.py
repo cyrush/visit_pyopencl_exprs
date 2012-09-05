@@ -21,7 +21,7 @@ except ImportError:
     pass
 
 from ..core import Filter, Context, log
-import pyocl_context
+import pyocl_env
 
 def info(msg):
     log.info(msg,"filters.pyocl_ops")
@@ -29,19 +29,17 @@ def info(msg):
 class PyOpenCLOpsContext(Context):
     context_type = "pyocl_ops"
     def start(self,dev_id = 0):
-        pyocl_context.set_device_id(dev_id)
-        pyocl_context.clear_events()
+        pyocl_env.Manager.set_device_id(dev_id)
+        pyocl_env.Manager.clear_events()
     def set_device_id(self,dev_id):
-        pyocl_context.set_device_id(dev_id)
+        pyocl_env.Manager.set_device_id(dev_id)
     def set_output_shape(self,shape):
         self.out_shape = shape
     def execute_kernel(self,kernel_source,inputs,out_dim=None):
-        ctx = pyocl_context.instance()
+        ctx = pyocl_env.Manager.context()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
         info(msg)
-        queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
-        mf    = cl.mem_flags
         buffers = []
         vshape = self.__find_valid_shape(inputs)
         if out_dim is None:
@@ -54,22 +52,17 @@ class PyOpenCLOpsContext(Context):
                 ibf[:] = ipt
             else:
                 ibf = ipt
-            #buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ibf)
-            buf = cl.Buffer(ctx, mf.READ_ONLY, ibf.nbytes)
-            win_evnt = cl.enqueue_copy(queue, buf, ibf)
-            pyocl_context.add_event("win",win_evnt,ibf.nbytes)
+            buf = pyocl_env.Pool.request_buffer(ibf.shape,ibf.dtype)
+            buf.write(ibf)
             buffers.append(buf)
-        res = npy.zeros(out_shape,dtype=npy.float32)
-        dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
+        dest_buf = pyocl_env.Pool.request_buffer(out_shape,npy.float32)
         buffers.append(dest_buf)
-        prg = cl.Program(ctx,kernel_source).build()
-        exe_evnt  = prg.kmain(queue, res.shape, None, *buffers)
-        rout_evnt = cl.enqueue_copy(queue, res, dest_buf)
-        pyocl_context.add_event("kexe",exe_evnt)
-        pyocl_context.add_event("rout",rout_evnt,res.nbytes)
-        return res
+        pyocl_env.Manager.dispatch_kernel(kernel_source,
+                                          out_shape,
+                                          buffers)
+        return dest_buf.read()
     def events_summary(self):
-        return pyocl_context.events_summary()
+        return pyocl_env.Manager.events_summary()
     def __find_valid_shape(self,inputs):
         for ipt in inputs:
             if isinstance(ipt, npy.ndarray):

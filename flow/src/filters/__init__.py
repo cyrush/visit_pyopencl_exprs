@@ -25,7 +25,7 @@ except ImportError as e:
 # check for import error only ...
 try:
     # these require pyopencl
-    import pyocl_context
+    import pyocl_env
     import pyocl_ops
     import pyocl_batch
     import pyocl_compile

@@ -21,7 +21,7 @@ except ImportError:
     pass
 
 from ..core import Filter, Context, log
-import pyocl_context
+import pyocl_env
 
 def info(msg):
     log.info(msg,"filters.pyocl_compile")
@@ -33,10 +33,10 @@ class PyOpenCLCompileContext(Context):
         self.stmts   = []
         self.inputs  = []
         self.out_shape = None
-        pyocl_context.set_device_id(dev_id)
-        pyocl_context.clear_events()
+        pyocl_env.Manager.set_device_id(dev_id)
+        pyocl_env.Manager.clear_events()
     def set_device_id(self,dev_id):
-        pyocl_context.set_device_id(dev_id)
+        pyocl_env.Manager.set_device_id(dev_id)
     def bind_data(self,obj):
         idx = len(self.inputs)
         self.inputs.append(obj)
@@ -106,30 +106,22 @@ class PyOpenCLCompileContext(Context):
         kernel_source = self.compile()
         return self.execute_kernel(kernel_source,self.inputs)
     def execute_kernel(self,kernel_source,inputs):
-        ctx = pyocl_context.instance()
         msg  = "Execute Kernel:\n"
         msg += kernel_source
         info(msg)
-        queue = cl.CommandQueue(ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
-        mf    = cl.mem_flags
         buffers = []
         for ipt in inputs:
-            buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=ipt)
-            buf = cl.Buffer(ctx, mf.READ_ONLY,ipt.nbytes)
-            win_evnt = cl.enqueue_copy(queue, buf, ipt)
-            pyocl_context.add_event("win",win_evnt,ipt.nbytes)
+            buf = pyocl_env.Pool.request_buffer(ipt.shape,ipt.dtype)
+            buf.write(ipt)
             buffers.append(buf)
-        res = npy.zeros(self.out_shape,dtype=npy.float32)
-        dest_buf = cl.Buffer(ctx, mf.WRITE_ONLY, res.nbytes)
+        dest_buf = pyocl_env.Pool.request_buffer(self.out_shape,npy.float32)
         buffers.append(dest_buf)
-        prg = cl.Program(ctx,kernel_source).build()
-        exe_evnt  = prg.kmain(queue, res.shape, None, *buffers)
-        rout_evnt = cl.enqueue_copy(queue, res, dest_buf)
-        pyocl_context.add_event("kexe",exe_evnt)
-        pyocl_context.add_event("rout",rout_evnt,res.nbytes)
-        return res
+        pyocl_env.Manager.dispatch_kernel(kernel_source,
+                                          self.out_shape,
+                                          buffers)
+        return dest_buf.read()
     def events_summary(self):
-        return pyocl_context.events_summary()
+        return pyocl_env.Manager.events_summary()
 
 class PyOpenCLCompileSource(Filter):
     # overrides standard RegistrySource
