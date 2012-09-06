@@ -28,14 +28,14 @@ def info(msg):
 
 class PyOpenCLCompileContext(Context):
     context_type = "pyocl_compile"
-    def start(self,dev_id = 0):
+    def start(self,platform_id, device_id):
+        pyocl_env.Manager.select_device(platform_id,device_id)
+        pyocl_env.Manager.clear_events()
+        pyocl_env.Pool.reset()
         self.kernels = {}
         self.stmts   = []
         self.inputs  = []
         self.out_shape = None
-        pyocl_env.Manager.set_device_id(dev_id)
-        pyocl_env.Manager.clear_events()
-        pyocl_env.Pool.reset()
     def set_device_id(self,dev_id):
         pyocl_env.Manager.set_device_id(dev_id)
     def bind_data(self,obj):

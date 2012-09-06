@@ -55,12 +55,15 @@ def main():
     if len(args) > 2:
         fset = args[2]
     if len(args) > 3:
-        plat, dev = [int(v) for v in args[3].split(":")]
+        plat  = int(args[3])
+    if len(args) > 4:
+        dev   = int(args[4])
     visit.OpenDatabase(dbfile)
-    define_flow_vpe("flow",expr=wfile,
-                          filter_set=fset,
-                          platform=plat,
-                          device=dev)
+    define_flow_vpe("flow",
+                    expr=wfile,
+                    filter_set=fset,
+                    platform_id=plat,
+                    device_id=dev)
     visit.AddPlot("Pseudocolor","flow")
     visit.DrawPlots()
     #visit.ClearAllWindows()

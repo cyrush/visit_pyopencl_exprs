@@ -29,9 +29,9 @@ def escape_src(src):
     return src
 
 def define_flow_vpe(ename,expr,
-                    filter_set="pyocl_ops",
-                    platform=0,
-                    device=0):
+                    filter_set,
+                    platform_id,
+                    device_id):
     # get proper vpe path ...
     fvpe = pjoin(vpe_path(),"visit_flow_exec.vpe")
     args = []
@@ -46,7 +46,6 @@ def define_flow_vpe(ename,expr,
         w = Workspace()
         w.register_filters(flow.filters.module(filter_set))
         ctx = w.add_context(filter_set,"root")
-        ctx.start()
         w.setup_expression_network(expr,ctx)
     # get root vars & use as expr args
     evars = w.filter_names()
@@ -55,7 +54,7 @@ def define_flow_vpe(ename,expr,
     args.extend(evars)
     expr_escaped = escape_src(expr)
     args.extend(['"'+ filter_set +  '"','"' + expr_escaped+ '"'])
-    args.extend(['"%d"' % platform, '"%d"' % device])
+    args.extend(['"%d"' % platform_id, '"%d"' % device_id])
     visit.DefinePythonExpression(ename,file=fvpe,args=args)
 
 

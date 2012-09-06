@@ -36,12 +36,10 @@ def err(msg):
 
 class PyOpenCLBatchContext(Context):
     context_type = "pyocl_batch"
-    def start(self,dev_id = 0):
-        pyocl_env.Manager.set_device_id(dev_id)
+    def start(self,platform_id, device_id):
+        pyocl_env.Manager.select_device(platform_id,device_id)
         pyocl_env.Manager.clear_events()
         pyocl_env.Pool.reset()
-    def set_device_id(self,dev_id):
-        pyocl_env.Manager.set_device_id(dev_id)
     def set_output_shape(self,shape):
         self.out_shape = shape
     def execute_kernel(self,kernel_source,inputs,out_dim=None):

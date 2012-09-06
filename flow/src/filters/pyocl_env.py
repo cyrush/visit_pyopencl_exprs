@@ -248,17 +248,15 @@ class PyOpenCLContextManager(object):
     cmdq     = None
     events   = []
     @classmethod
-    def set_platform_id(cls,plat_id):
-        cls.plat_id = plat_id
-    @classmethod
-    def set_device_id(cls,dev_id):
-        cls.dev_id = dev_id
+    def select_device(cls,platform_id,device_id):
+        cls.plat_id = platform_id
+        cls.dev_id  = device_id
     @classmethod
     def queue(cls):
         if cls.cmdq is None:
             ctx = cls.context()
-            cls.cmdq = cl.CommandQueue(ctx,
-                        properties=cl.command_queue_properties.PROFILING_ENABLE)
+            prof = cl.command_queue_properties.PROFILING_ENABLE
+            cls.cmdq = cl.CommandQueue(ctx,properties=prof)
         return cls.cmdq
     @classmethod
     def instance(cls):
@@ -285,6 +283,7 @@ class PyOpenCLContextManager(object):
             cinfo += "  Device max clock speed: %s MHz\n" % device.max_clock_frequency
             cinfo += "  Device compute units: %s\n" % device.max_compute_units
             info(cinfo)
+            print cinfo
             cls.device = device
             cls.ctx = cl.Context([device])
             cls.ctx_info = cinfo
