@@ -40,12 +40,18 @@ class FlowExecExpr(SimplePythonExpression):
         # get workspace
         wstype = self.arguments[0]
         wsexpr = self.arguments[1]
+        plat   = int(self.arguments[2])
+        dev    = int(self.arguments[3])
         if wstype == "src":
             w = Workspace.load_workspace_script(src=self.arguments[1])
         else:
             w = Workspace()
             w.register_filters(module(wstype))
             ctx = w.add_context(wstype,"root")
+            if ctx.context_type.count("pyocl")>0:
+                pyocl_env.Manager.set_platform_id(plat)
+                pyocl_env.Manager.set_device_id(dev)
+                #ctx.set_device_id(mpicom.rank() % 2)
             ctx.start()
             w.setup_expression_network(wsexpr,ctx)
         fsetup.stop()
@@ -69,10 +75,6 @@ class FlowExecExpr(SimplePythonExpression):
             w.registry_add(":" + var,vdata)
         tvtk.stop()
         fexec.start()
-        if w.has_context("root"):
-            ctx = w.get_context("root")
-            if ctx.context_type.count("pyocl")>0:
-                ctx.set_device_id(mpicom.rank() % 2)
         # exec filter graph (returns last registry entry obj)
         if w.has_context("root"):
             ctx.set_output_shape((ncells,))
@@ -84,6 +86,7 @@ class FlowExecExpr(SimplePythonExpression):
                 r = ctx.run()
             elif ctx.context_type.count("batch") > 0:
                 r = r.read()
+            pyocl_env.Manager.queue().finish()
         # set result (results in a numpy data copy)
         out[:] = r
         fexec.stop()
@@ -98,13 +101,21 @@ class FlowExecExpr(SimplePythonExpression):
         print txt
         for t in [fsetup, tvtk, fexec]:
             print "FlowExecExpr::TimingInfo  %s" % t
-        print "FlowExecExpr::TimingInfo   %s" % wtot
+        print "FlowExecExpr::TimingInfo  %s" % wtot
         itot = fsetup.get_elapsed() + tvtk.get_elapsed() + fexec.get_elapsed()
         print "FlowExecExpr::TimingInfo  wtot - (fsetup+tvtk+fexe) = %s" % repr(wtot.get_elapsed() - itot)
-        ctx_diff = wtot.get_elapsed() - ttag["total"]["qte"]
-        print "FlowExecExpr::TimingInfo  wtot - ctx_events = %s" % repr(ctx_diff)
-        perc = str(round(100.0*ctx_diff/wtot.get_elapsed(),2)) + " (%)"
-        print "FlowExecExpr::TimingInfo  ctx_events_diff/wtot = %s " % perc
+        ctx_ste =  ttag["total"]["ste"]
+        ctx_qte = ttag["total"]["qte"]
+        ctx_ste_diff = wtot.get_elapsed() - ctx_ste
+        ctx_ste_diff_perc = str(round(100.0*ctx_ste_diff/wtot.get_elapsed(),2)) + " (%)"
+        ctx_qte_diff = wtot.get_elapsed() - ctx_qte
+        ctx_qte_diff_perc = str(round(100.0*ctx_qte_diff/wtot.get_elapsed(),2)) + " (%)"
+        print "FlowExecExpr::TimingInfo  ctx_ste = %s" % repr(ctx_ste)
+        print "FlowExecExpr::TimingInfo  wtot - ctx_ste = %s" % repr(ctx_ste_diff)
+        print "FlowExecExpr::TimingInfo  ctx_qte_diff/wtot = %s " % ctx_ste_diff_perc
+        print "FlowExecExpr::TimingInfo  ctx_qte = %s" % repr(ctx_qte)
+        print "FlowExecExpr::TimingInfo  wtot - ctx_qte = %s" % repr(ctx_qte_diff)
+        print "FlowExecExpr::TimingInfo  ctx_qte_diff/wtot = %s " % ctx_qte_diff_perc
 
 
 

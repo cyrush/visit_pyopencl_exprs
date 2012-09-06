@@ -28,7 +28,10 @@ def escape_src(src):
     src = src.replace(' ','\\s')
     return src
 
-def define_flow_vpe(ename,expr,filter_set="pyocl_ops"):
+def define_flow_vpe(ename,expr,
+                    filter_set="pyocl_ops",
+                    platform=0,
+                    device=0):
     # get proper vpe path ...
     fvpe = pjoin(vpe_path(),"visit_flow_exec.vpe")
     args = []
@@ -52,6 +55,7 @@ def define_flow_vpe(ename,expr,filter_set="pyocl_ops"):
     args.extend(evars)
     expr_escaped = escape_src(expr)
     args.extend(['"'+ filter_set +  '"','"' + expr_escaped+ '"'])
+    args.extend(['"%d"' % platform, '"%d"' % device])
     visit.DefinePythonExpression(ename,file=fvpe,args=args)
 
 

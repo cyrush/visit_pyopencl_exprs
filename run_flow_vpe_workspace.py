@@ -11,13 +11,15 @@ def sexe(cmd):
 
 def main():
     if len(sys.argv) < 2:
-        print "usage: run_flow_vpe_workspace.py [expr] <dbfile> <fset>"
+        print "usage: run_flow_vpe_workspace.py [expr] <plat:dev> <dbfile> <fset>"
         sys.exit(-1)
     args    = sys.argv[1:]
     nargs   = len(args)
     wscript = os.path.abspath(args[0])
     dbfile  = ""
     fset    = ""
+    plat    = 0
+    dev     = 1
     if nargs > 1:
         dbfile = os.path.abspath(args[1])
     if nargs > 2:
@@ -37,7 +39,7 @@ def main():
     rscript = os.path.abspath(pjoin(os.getcwd(),
                                     "visit_flow_vpe",
                                     "visit_exec_example_workspace.py"))
-    sexe("visit -cli -s %s %s %s %s" % (rscript,wscript,dbfile,fset))
+    sexe("visit -cli -s %s %s %s %s %d:%d" % (rscript,wscript,dbfile,fset,plat,dev))
 
 
 if __name__ == "__main__":

@@ -2,7 +2,8 @@
 import sys
 import subprocess
 import socket
-
+import os
+from os.path import join as pjoin
 
 def par(rtype,base_path):
     hname = socket.gethostname()
@@ -41,10 +42,11 @@ def main():
     if "--par" in args[1:]:
         run_par = True
     for run in runs:
-        ser(run)
+        ser(run,base_path)
         if run_par:
-            par(run)
+            par(run,base_path)
 
 if __name__ == "__main__":
     main()
+
 

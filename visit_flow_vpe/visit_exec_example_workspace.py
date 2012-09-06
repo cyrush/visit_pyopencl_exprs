@@ -47,13 +47,20 @@ def main():
     args   = Argv()
     wfile  = args[0]
     dbfile = pjoin("tests","_data","rect2d.silo")
+    fset = "pyocl_ops"
+    plat = 0
+    dev  = 0
     if len(args) > 1:
         dbfile = args[1]
-    fset = "pyocl_ops"
     if len(args) > 2:
         fset = args[2]
+    if len(args) > 3:
+        plat, dev = [int(v) for v in args[3].split(":")]
     visit.OpenDatabase(dbfile)
-    define_flow_vpe("flow",expr=wfile,filter_set=fset)
+    define_flow_vpe("flow",expr=wfile,
+                          filter_set=fset,
+                          platform=plat,
+                          device=dev)
     visit.AddPlot("Pseudocolor","flow")
     visit.DrawPlots()
     #visit.ClearAllWindows()

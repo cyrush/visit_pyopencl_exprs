@@ -144,17 +144,23 @@ def exe_single(rtype,method,test_file,idx,rdirs,nprocs,ts):
     exe_gpu_batch(rtype,method,idx,rdirs,test_file,nprocs,ts)
     exe_gpu_naive(rtype,method,idx,rdirs,test_file,nprocs,ts)
 
-def timing_summary(rdirs,nprocs,ofile = None):
-    if not ofile is None:
-        ofile = open(ofile,"w")
+def timing_summary(rdirs,nprocs,ofname):
+    ofile = open(ofname,"w")
     for k,v in rdirs.items():
         vals = {}
-        eefs = []
-        tots = []
+        rtimes ={"veefs": [],
+                 "vtots": [],
+                 "flows": [],
+                 "dqtes": [],
+                 "dstes": []}
         base_out  = glob.glob(pjoin(v,"timing.results.*","run.out.txt"))
         for b in base_out:
-            res,flow,ste,qte = fetch_base_timing_info(b)
-        print res
+            txt,flow,ste,qte = fetch_base_timing_info(b)
+            rtimes["flows"].append(flow)
+            rtimes["dstes"].append(ste)
+            rtimes["dqtes"].append(qte)
+            print txt
+            ofile.write(txt)
         if nprocs == 1:
             fs = glob.glob(pjoin(v,"timing.results.*","engine_ser.timings"))
         else:
@@ -162,18 +168,21 @@ def timing_summary(rdirs,nprocs,ofile = None):
         if len(fs) > 0:
             txt = "%s:\n indiv cases\n" % k
             print txt
-            if not ofile is None: ofile.write(txt + "\n")
+            ofile.write(txt + "\n")
             for f in fs:
                 txt,eef,tot = fetch_timing_info(f)
                 print txt
-                if not ofile is None: ofile.write(txt + "\n")
-                eefs.append(eef)
-                tots.append(tot)
-            eef_avg = "%s: eef_avg = %s" %(k,str(sum(eefs)/float(len(eefs))))
-            tot_avg = "%s: tot_avg = %s" %(k, str(sum(tots)/float(len(tots))))
-            print eef_avg
-            print tot_avg
-            if not ofile is None: ofile.write("\n%s\n%s\n" % (eef_avg,tot_avg))
+                ofile.write(txt + "\n")
+                rtimes["veefs"].append(eef)
+                rtimes["vtots"].append(tot)
+        txt = "\n%s avgs:\n" % k
+        print txt
+        ofile.write(txt)
+        for rk,rv in rtimes.items():
+            if len(rv) > 0:
+                rk_avg = "%s: %s_avg = %s" %(k,rk,str(sum(rv)/float(len(rv))))
+                print rk_avg
+                ofile.write("%s\n" % rk_avg)
 
 def fetch_timing_info(f):
     res =""
@@ -192,6 +201,9 @@ def fetch_timing_info(f):
 def fetch_base_timing_info(f):
     res =""
     lines = open(f).readlines()
+    flow = -1
+    ste  = -1
+    qte  = -1
     for l in lines:
         if l.count("FlowExecExpr::TimingInfo  exe_flow") == 1:
             flow  = float(l.split()[-2].strip())
@@ -206,6 +218,8 @@ def fetch_base_timing_info(f):
 
 
 if __name__ == "__main__":
+    plat    = 0
+    dev     = 0
     ntests = 1
     nprocs = 1
     test_file =pjoin(sdir,"..","rt3d_one_chunk.silo")
@@ -214,21 +228,23 @@ if __name__ == "__main__":
     method  = "srun"
     tstride = 1
     if len(args) > 1:
-        method = args[1]
+        plat, dev = [int(v) for v in args[1].split(":")]
     if len(args) > 2:
         test_file = os.path.abspath(args[2])
     if len(args) > 3:
-        rtype = args[3]
-    tag = rtype
+        method = args[3]
     if len(args) > 4:
-        ntests = int(args[4])
+        rtype = args[4]
+    tag = rtype
     if len(args) > 5:
-        nprocs = int(args[5])
+        ntests = int(args[5])
     if len(args) > 6:
-        tag = tag  + args[6]
+        nprocs = int(args[6])
     if len(args) > 7:
-        tstride = int(args[7])
-    ofile = "out." + tag + ".txt" 
+        tag = tag  + args[7]
+    if len(args) > 8:
+        tstride = int(args[8])
+    ofile = "summary." + tag + ".txt" 
     setup_python_path()
     rdirs = prep_results_dir(tag)
     print "[executing %d timing runs]" % ntests

@@ -133,15 +133,16 @@ class PyOpenCLBufferPool(object):
                 b.reactivate(shape,dtype)
                 res_buf = b
                 break
-        if res_buf is None:
-            for b in avail:
-                # now simply check if the buffer is big enough
-                if b.nbytes >= rbytes:
-                    # we can reuse
-                    info("PyOpenCLBufferPool reuse: " + str(b))
-                    b.reactivate(shape,dtype)
-                    res_buf = b
-                    break
+        # to use mem wisely, reap when exact match doesn't occur
+        # if res_buf is None:
+        #     for b in avail:
+        #         # now simply check if the buffer is big enough
+        #         if b.nbytes >= rbytes:
+        #             # we can reuse
+        #             info("PyOpenCLBufferPool reuse: " + str(b))
+        #             b.reactivate(shape,dtype)
+        #             res_buf = b
+        #             break
         if res_buf is None:
             res_buf = cls.__create_buffer(shape,dtype)
         return res_buf
@@ -320,10 +321,12 @@ class PyOpenCLContextManager(object):
         tbytes   = 0
         ttag     = {}
         tqte     = 0.0
+        tste     = 0.0
         tnevents = len(cls.events)
         for e in cls.events:
             tbytes += e.nbytes
             tqte   += e.queued_to_end()
+            tste   += e.start_to_end()
             if e.tag in ttag.keys():
                 t = ttag[e.tag]
                 t["nevents"] += 1
@@ -362,12 +365,14 @@ class PyOpenCLContextManager(object):
             res += "%s\n" % v
         res += "Total # of events: %d\n" % tnevents
         res += "Total nbytes: %s\n" % nbytes_str(tbytes)
-        res += "Total queued to end: %s (s)\n" % repr(tqte)
+        res += "Total start to end:  %s (s)\n" % repr(tqte)
+        res += "Total queued to end: %s (s)\n" % repr(tste)
         ttag["total"] = {"tag":"total",
                          "etype":"total",
                          "nevents": tnevents,
                          "nbytes":  tbytes,
-                         "qte":     tqte}
+                         "qte":     tqte,
+                         "ste":     tste}
         res += "%s\n" % ttag["total"]
         return res, ttag
 
