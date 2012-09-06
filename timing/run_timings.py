@@ -69,20 +69,20 @@ def prep_dest_dir(dest_dir):
     if os.path.isdir(dest_dir):
         shutil.rmtree(dest_dir)
     os.mkdir(dest_dir)
-    
+
 def expr_path(sdir,rtype):
     if rtype.count("vort"):
         expr = "ex_vort_mag.txt"
-    elif rtype.count("mag"):
+    elif rtype.count("mag") > 0 or rtype.count("vel") > 0:
         expr = "ex_vel_mag.txt"
     else:
-        expr = "ex_q_criteron.txt"
+        expr = "ex_q_criterion.txt"
     return pjoin(sdir,"..",expr)
 
 def test_script(*args):
     return os.path.abspath(pjoin(*args))
 
-def exe_cpu(rtype,method,idx,rdirs,test_file,nprocs,ts):
+def exe_cpu(idx, rdirs,rtype,dbfile,plat,dev,tstride,nprocs,method):
     dest_dir = pjoin(rdirs["cpu"],"timing.results.%04d") % idx
     prep_dest_dir(dest_dir)
     if rtype.count("vort"):
@@ -91,13 +91,13 @@ def exe_cpu(rtype,method,idx,rdirs,test_file,nprocs,ts):
         script = test_script(sdir,"..","standalone","vector_mag","visit_vector_mag_exec.py")
     else:
         script = test_script(sdir,"..","standalone","q_criterion","visit_q_criterion_exec.py")
-    print "\nEXEC:CPU\n   Dset:%s\n   Script:%s\n" % (test_file,test_script)
+    print "\nEXEC:CPU\n   Dset:%s\n   Script:%s\n" % (dbfile,test_script)
     cmd  = "cd %s && " % dest_dir
-    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s -save" % (test_script,test_file)
+    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s %d %d -save" % (test_script,test_file)
     cmd += " > run.out.txt"
     sexe(cmd)
 
-def exe_gpu_hand(rtype,method,idx,rdirs,test_file,nprocs,ts):
+def exe_gpu_hand(idx, rdirs,rtype,dbfile,plat,dev,tstride,nprocs,method):
     dest_dir = pjoin(rdirs["hand"],"timing.results.%04d") % idx
     prep_dest_dir(dest_dir)
     if rtype.count("vort"):
@@ -108,41 +108,37 @@ def exe_gpu_hand(rtype,method,idx,rdirs,test_file,nprocs,ts):
         script = test_script(sdir,"..","standalone","q_criterion","visit_pyopencl_q_criterion_exec.py")
     print "\nEXEC:GPU HAND\n   Dset:%s\n   Script:%s\n" % (test_file,script)
     cmd  = "cd %s && " % dest_dir
-    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s -save" % (script,test_file)
+    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s %d %d -save" % (script,dbfile,plat,dev)
     cmd += " > run.out.txt"
     sexe(cmd)
 
-def exe_flow(rtype,method,idx,rdirs,test_file,nprocs,ts,fset):
+
+def exe_flow(idx,rdirs,rtype,fset,dbfile,plat,dev,tstride,nprocs,method):
     dest_dir = pjoin(rdirs[fset],"timing.results.%04d") % idx
     prep_dest_dir(dest_dir)
     test_expr = expr_path(sdir,rtype)
-    print "\nEXEC: %s\n   Dset:%s\n   Script:%s\n" % (fset,test_file,test_expr)
+    print "\nEXEC: %s\n   Dset:%s\n   Script:%s\n" % (fset,dbfile,test_expr)
     cmd  = "cd %s && " % dest_dir
     script = test_script(sdir,"..","visit_flow_vpe","visit_exec_example_workspace.py")
-    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s %s %s -save" % (script,
-                                                                    test_expr,
-                                                                    test_file,
-                                                                    fset)
+    cmd += vcmd(nprocs,method,tstride=tstride) + " %s %s %s %s %d %d -save" % (script,
+                                                                          test_expr,
+                                                                          dbfile,
+                                                                          fset,
+                                                                          plat,
+                                                                          dev)
+
     cmd += " > run.out.txt"
     sexe(cmd)
     dest_dir = pjoin(rdirs[fset],"timing.results.%04d") % idx
 
-def exe_gpu_auto(rtype,method,idx,rdirs,test_file,nprocs,ts):
-    exe_flow(rtype,method,idx,rdirs,test_file,nprocs,ts,"pyocl_compile")
-
-def exe_gpu_batch(rtype,method,idx,rdirs,test_file,nprocs,ts):
-    exe_flow(rtype,method,idx,rdirs,test_file,nprocs,ts,"pyocl_batch")
-
-def exe_gpu_naive(rtype,method,idx,rdirs,test_file,nprocs,ts):
-    exe_flow(rtype,method,idx,rdirs,test_file,nprocs,ts,"pyocl_ops")
 
 
-def exe_single(rtype,method,test_file,idx,rdirs,nprocs,ts):
-    #exe_gpu_hand(rtype,method,idx,rdirs,test_file,nprocs,ts)
-    #exe_cpu(rtype,method,idx,rdirs,test_file,nprocs,ts)
-    exe_gpu_auto(rtype,method,idx,rdirs,test_file,nprocs,ts)
-    exe_gpu_batch(rtype,method,idx,rdirs,test_file,nprocs,ts)
-    exe_gpu_naive(rtype,method,idx,rdirs,test_file,nprocs,ts)
+def exe_single(idx, params):
+    #exe_gpu_hand(idx, **params)
+    #exe_cpu(idx,**params)
+    exe_flow(idx, fset = "pyocl_ops", **params)
+    exe_flow(idx, fset = "pyocl_batch", **params)
+    exe_flow(idx, fset = "pyocl_compile", **params)
 
 def timing_summary(rdirs,nprocs,ofname):
     ofile = open(ofname,"w")
@@ -153,21 +149,21 @@ def timing_summary(rdirs,nprocs,ofname):
                  "flows": [],
                  "dqtes": [],
                  "dstes": []}
-        base_out  = glob.glob(pjoin(v,"timing.results.*","run.out.txt"))
-        for b in base_out:
-            txt,flow,ste,qte = fetch_base_timing_info(b)
-            rtimes["flows"].append(flow)
-            rtimes["dstes"].append(ste)
-            rtimes["dqtes"].append(qte)
-            print txt
-            ofile.write(txt)
         if nprocs == 1:
             fs = glob.glob(pjoin(v,"timing.results.*","engine_ser.timings"))
         else:
             fs = glob.glob(pjoin(v,"timing.results.*","engine_par.*timings"))
         if len(fs) > 0:
             txt = "%s:\n indiv cases\n" % k
+            print txt,
+            base_out  = glob.glob(pjoin(v,"timing.results.*","run.out.txt"))
+            for b in base_out:
+                txt,flow,ste,qte = fetch_base_timing_info(b)
+            rtimes["flows"].append(flow)
+            rtimes["dstes"].append(ste)
+            rtimes["dqtes"].append(qte)
             print txt
+            ofile.write(txt)
             ofile.write(txt + "\n")
             for f in fs:
                 txt,eef,tot = fetch_timing_info(f)
@@ -175,14 +171,14 @@ def timing_summary(rdirs,nprocs,ofname):
                 ofile.write(txt + "\n")
                 rtimes["veefs"].append(eef)
                 rtimes["vtots"].append(tot)
-        txt = "\n%s avgs:\n" % k
-        print txt
-        ofile.write(txt)
-        for rk,rv in rtimes.items():
-            if len(rv) > 0:
-                rk_avg = "%s: %s_avg = %s" %(k,rk,str(sum(rv)/float(len(rv))))
-                print rk_avg
-                ofile.write("%s\n" % rk_avg)
+            txt = "\n%s avgs:\n" % k
+            print txt,
+            ofile.write(txt)
+            for rk,rv in rtimes.items():
+                if len(rv) > 0:
+                    rk_avg = " %s: %s_avg = %s" %(k,rk,str(sum(rv)/float(len(rv))))
+                    print rk_avg
+                    ofile.write("%s\n" % rk_avg)
 
 def fetch_timing_info(f):
     res =""
@@ -205,9 +201,11 @@ def fetch_base_timing_info(f):
     ste  = -1
     qte  = -1
     for l in lines:
+        if l.lower().count("platform ") > 0 or l.lower().count("device ") > 0 or l.lower().count("context info") > 0:
+            res += l
         if l.count("FlowExecExpr::TimingInfo  exe_flow") == 1:
             flow  = float(l.split()[-2].strip())
-            res += "  exe_flow (host) = %s\n" % str(flow)
+            res += "\n  exe_flow (host) = %s\n" % str(flow)
         if l.count("FlowExecExpr::TimingInfo  ctx_ste =") == 1:
             ste  = float(l.split()[-1].strip())
             res += "  ctx_ste (dev)   = %s\n" % str(ste)
@@ -218,40 +216,43 @@ def fetch_base_timing_info(f):
 
 
 if __name__ == "__main__":
-    plat    = 0
-    dev     = 0
     ntests = 1
-    nprocs = 1
-    test_file =pjoin(sdir,"..","rt3d_one_chunk.silo")
-    args    = sys.argv
-    rtype   = "vort"
-    method  = "srun"
-    tstride = 1
+    tag    = ""
+    params = {"plat":0,
+              "dev":0,
+              "nprocs":1,
+              "dbfile":pjoin(sdir,"..","rt3d_one_chunk.silo"),
+              "rtype": "vort",
+              "method": "srun",
+              "tstride": 1}
+    args = sys.argv
     if len(args) > 1:
-        plat, dev = [int(v) for v in args[1].split(":")]
+        params["rtype"] = args[1]
+    tag = params["rtype"]
     if len(args) > 2:
-        test_file = os.path.abspath(args[2])
+        params["dbfile"] = os.path.abspath(args[2])
     if len(args) > 3:
-        method = args[3]
+        params["plat"] = int(args[3])
     if len(args) > 4:
-        rtype = args[4]
-    tag = rtype
+        params["dev"]  = int(args[4])
     if len(args) > 5:
-        ntests = int(args[5])
+        params["method"] = args[5]
     if len(args) > 6:
-        nprocs = int(args[6])
+        ntests = int(args[6])
     if len(args) > 7:
-        tag = tag  + args[7]
+        params["nprocs"] = int(args[7])
     if len(args) > 8:
-        tstride = int(args[8])
-    ofile = "summary." + tag + ".txt" 
+        tag  = tag + args[8]
+    if len(args) > 9:
+        params["tstride"] = int(args[9])
+    ofile = "summary." + tag + ".txt"
     setup_python_path()
-    rdirs = prep_results_dir(tag)
+    params["rdirs"] = prep_results_dir(tag)
     print "[executing %d timing runs]" % ntests
     for idx in xrange(ntests):
-        exe_single(rtype,method,test_file,idx,rdirs,nprocs,tstride)
+        exe_single(idx,params)
     print "[results]"
-    timing_summary(rdirs,nprocs,ofile )
+    timing_summary(params["rdirs"],params["nprocs"],ofile)
 
 
 
