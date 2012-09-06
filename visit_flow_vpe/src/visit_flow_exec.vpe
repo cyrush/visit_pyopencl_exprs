@@ -17,6 +17,8 @@ import vtk.util.numpy_support as vnp
 
 from flow import *
 from flow.filters import *
+import hotshot
+from hotshot import stats
 
 class FlowExecExpr(SimplePythonExpression):
     def __init__(self):
@@ -24,7 +26,17 @@ class FlowExecExpr(SimplePythonExpression):
         self.name = "FlowExecExpr"
         self.output_is_point_var = False
         self.output_dimension = 1
+        self.profile = True
     def derive_variable(self,ds_in,domain_id):
+        if self.profile:
+            prof   = hotshot.Profile("hotshot_flow_exec")
+            prof.start()
+        wtot   = WallTimer("derive_variable")
+        fsetup = WallTimer("setup_flow")
+        tvtk   = WallTimer("vtk_setup")
+        fexec  = WallTimer("exe_flow")
+        wtot.start()
+        fsetup.start()
         # get workspace
         wstype = self.arguments[0]
         wsexpr = self.arguments[1]
@@ -36,6 +48,8 @@ class FlowExecExpr(SimplePythonExpression):
             ctx = w.add_context(wstype,"root")
             ctx.start()
             w.setup_expression_network(wsexpr,ctx)
+        fsetup.stop()
+        tvtk.start()
         # construct output array
         ncells = ds_in.GetNumberOfCells()
         dims = npy.array(ds_in.GetDimensions(),dtype=npy.int32)
@@ -53,13 +67,13 @@ class FlowExecExpr(SimplePythonExpression):
                 raise Exception("flow_vpe error: could not fetch %s" % var)
             vdata = vnp.vtk_to_numpy(vdata)
             w.registry_add(":" + var,vdata)
+        tvtk.stop()
+        fexec.start()
         if w.has_context("root"):
             ctx = w.get_context("root")
             if ctx.context_type.count("pyocl")>0:
                 ctx.set_device_id(mpicom.rank() % 2)
         # exec filter graph (returns last registry entry obj)
-        # print w.execution_plan()
-        w.graph.save_dot("last.dot")
         if w.has_context("root"):
             ctx.set_output_shape((ncells,))
         r = w.execute()
@@ -67,14 +81,31 @@ class FlowExecExpr(SimplePythonExpression):
         # are using pyocl_{ops,batch,compile}
         if w.has_context("root"):
             if ctx.context_type.count("compile") > 0:
-                #if mpicom.rank() == 0:
-                #    print ctx.compile()
                 r = ctx.run()
             elif ctx.context_type.count("batch") > 0:
                 r = r.read()
-            print ctx.events_summary()
         # set result (results in a numpy data copy)
         out[:] = r
+        fexec.stop()
+        wtot.stop()
+        if self.profile:
+            prof.close()
+        if w.has_context("root"):
+            txt, ttag = ctx.events_summary()
+            self.timing_info(txt,ttag,fsetup, tvtk, fexec,wtot)
         return res
+    def timing_info(self,txt,ttag,fsetup, tvtk, fexec,wtot):
+        print txt
+        for t in [fsetup, tvtk, fexec]:
+            print "FlowExecExpr::TimingInfo  %s" % t
+        print "FlowExecExpr::TimingInfo   %s" % wtot
+        itot = fsetup.get_elapsed() + tvtk.get_elapsed() + fexec.get_elapsed()
+        print "FlowExecExpr::TimingInfo  wtot - (fsetup+tvtk+fexe) = %s" % repr(wtot.get_elapsed() - itot)
+        ctx_diff = wtot.get_elapsed() - ttag["total"]["qte"]
+        print "FlowExecExpr::TimingInfo  wtot - ctx_events = %s" % repr(ctx_diff)
+        perc = str(round(100.0*ctx_diff/wtot.get_elapsed(),2)) + " (%)"
+        print "FlowExecExpr::TimingInfo  ctx_events_diff/wtot = %s " % perc
+
+
 
 py_filter = FlowExecExpr

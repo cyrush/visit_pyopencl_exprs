@@ -2,7 +2,7 @@
 # ${disclaimer}
 #
 """
- file: pyocl_context.py
+ file: pyocl_env.py
  author: Cyrus Harrison <cyrush@llnl.gov>
  created: 4/21/2012
  description:
@@ -23,10 +23,13 @@ except ImportError:
 __all__ = ["Manager",
            "Pool"]
 
-from ..core import log
+from ..core import WallTimer, log
 
 def info(msg):
-    log.info(msg,"pyocl_context")
+    log.info(msg,"pyocl_env")
+
+def err(msg):
+    log.error(msg,"pyocl_env")
 
 def calc_nbytes(shape,dtype):
     res = npy.dtype(dtype).itemsize
@@ -51,8 +54,11 @@ class PyOpenCLBuffer(object):
         self.dtype     = dtype
         self.nbytes    = calc_nbytes(shape,dtype)
         ctx = PyOpenCLContextManager.context()
-        # TODO time alloc
+        balloc = PyOpenCLHostTimer("balloc",self.nbytes)
+        balloc.start()
         self.cl_obj   = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, self.nbytes)
+        balloc.stop()
+        PyOpenCLContextManager.add_host_event(balloc)
         self.__active = 2
         info("PyOpenCLBuffer create: " + str(self))
     def write(self,data):
@@ -64,8 +70,11 @@ class PyOpenCLBuffer(object):
     def read(self):
         nbytes = calc_nbytes(self.out_shape,self.dtype)
         info("PyOpenCLBuffer read %d bytes from %s " % (nbytes,str(self)))
-        # TODO time alloc
+        htimer = PyOpenCLHostTimer("ralloc",self.nbytes)
+        htimer.start()
         res = npy.zeros(self.out_shape,dtype=self.dtype)
+        htimer.stop()
+        PyOpenCLContextManager.add_host_event(htimer)
         # this is blocking ...
         evnt = cl.enqueue_copy(PyOpenCLContextManager.queue(),res,self.cl_obj)
         PyOpenCLContextManager.add_event("rout",evnt,nbytes)
@@ -87,7 +96,9 @@ class PyOpenCLBuffer(object):
     def available(self):
         return self.__active == 0
     def __str__(self):
-        return "(%d) dtype: %s, nbytes: %s, alloc_shape: %s, out_shape: %s" % (self.id,self.dtype,self.nbytes,self.shape,self.out_shape)
+        res = "(%d) dtype: %s, nbytes: %s, alloc_shape: %s, out_shape: %s status:%d"
+        res = res % (self.id,self.dtype,self.nbytes,self.shape,self.out_shape,self.__active)
+        return res
 
 
 class PyOpenCLBufferPool(object):
@@ -95,9 +106,13 @@ class PyOpenCLBufferPool(object):
     total_alloc = 0
     @classmethod
     def reset(cls):
+        rset = PyOpenCLHostTimer("pool_reset",0)
+        rset.start()
         # this should trigger pyopencl cleanup of buffers
         cls.buffers     = []
         cls.total_alloc = 0
+        rset.stop()
+        PyOpenCLContextManager.add_host_event(rset)
     @classmethod
     def available_device_memory(cls,percentage=False):
         devm = PyOpenCLContextManager.device_memory()
@@ -129,12 +144,29 @@ class PyOpenCLBufferPool(object):
                     break
         if res_buf is None:
             res_buf = cls.__create_buffer(shape,dtype)
-        cls.__release()
         return res_buf
+    @classmethod
+    def buffer_info(cls):
+        res  = "Total Device Memory: %s\n" % nbytes_str(PyOpenCLContextManager.device_memory())
+        res += "Available Memory:   %s "  % nbytes_str(cls.available_device_memory())
+        res += "(" + repr(cls.available_device_memory(True)) + " %)\n"
+        res += "Buffers:\n"
+        for b in cls.buffers:
+            res += " " + str(b) + "\n"
+        return res
+    @classmethod
+    def reclaim(cls):
+        #if released(), the buffer is avail for the next request
+        for b in cls.buffers:
+            if b.released():
+                b.reclaim()
+    @classmethod
+    def release_buffer(cls,buff):
+        cls.total_alloc -= b.nbytes
+        cls.buffers.remove(buff)
     @classmethod
     def __create_buffer(cls,shape,dtype):
         # no suitable buffer, we need to create a new one
-        ctx    = PyOpenCLContextManager.context()
         rbytes = calc_nbytes(shape,dtype)
         # see if we have enough bytes left on the device
         # if not, try to  reclaim some memory from released buffers
@@ -143,46 +175,34 @@ class PyOpenCLBufferPool(object):
             if rbytes > cls.available_device_memory():
                 msg  = "Reap failed\n"
                 msg += " Free Request:       %s\n" % nbytes_str(rbytes)
-                msg += " Result:             %s "  % nbytes_str(cls.available_device_memory())
-                msg += "(" + repr(cls.available_device_memory(True)) + " %)\n"
-                msg += "Total Device Memory: %s\n" % nbytes_str(device_memory())
+                msg += PyOpenCLContextManager.events_summary()[0] + "\n"
+                msg += cls.buffer_info() + "\n"
                 err(msg)
+                raise MemoryError
         res = PyOpenCLBuffer(len(cls.buffers),shape,dtype)
         cls.total_alloc += res.nbytes
-        msg  = "PyOpenCLBufferPool total device memory alloced: "
-        msg += nbytes_str(cls.total_alloc) +"\n"
-        msg += "PyOpenCLBufferPool avaliable device memory: "
-        msg += nbytes_str(cls.available_device_memory())
-        msg += " (" + repr(cls.available_device_memory(True)) + "%)\n"
-        info(msg)
         cls.buffers.append(res)
+        info(cls.buffer_info())
         return res
-    @classmethod
-    def __release(cls):
-        #if released(), the buffer is avail for the next request
-        for b in cls.buffers:
-            if b.released():
-                b.reclaim()
     @classmethod
     def __reap(cls,nbytes):
         rbytes = 0
         avail  = [b for b in cls.buffers if b.available()]
         for b in avail:
-            cls.total_alloc -= b.nbytes
             rbytes += b.nbytes
-            cls.buffers.remove(b)
+            cls.release_buffer(b)
             if cls.available_device_memory() >= nbytes:
                 # we have enough mem, so break
                 break
         del avail
-        msg  = "PyOpenCLBufferPool reclaimed alloced: "
+        msg  = "PyOpenCLBufferPool reap reclaimed: "
         msg += nbytes_str(rbytes)
         info(msg)
 
 
-
 class PyOpenCLContextEvent(object):
     def __init__(self,tag,cl_evnt,nbytes):
+        self.etype   = "device"
         self.tag     = tag
         self.cl_evnt = cl_evnt
         self.nbytes  = nbytes
@@ -191,7 +211,7 @@ class PyOpenCLContextEvent(object):
         sts = 1e-9*(self.cl_evnt.profile.start  - self.cl_evnt.profile.submit)
         ste = 1e-9*(self.cl_evnt.profile.end    - self.cl_evnt.profile.start)
         qte = 1e-9*(self.cl_evnt.profile.end    - self.cl_evnt.profile.queued)
-        res = "Event: %s (nbytes=%d)\n" % (self.tag,self.nbytes)
+        res = "Device Event: %s (nbytes=%d)\n" % (self.tag,self.nbytes)
         res += "  Queued to Submit: %s\n" % repr(qts)
         res += "  Submit to Start:  %s\n" % repr(sts)
         res += "  Start  to End:    %s\n" % repr(ste)
@@ -201,6 +221,22 @@ class PyOpenCLContextEvent(object):
         return 1e-9*(self.cl_evnt.profile.end - self.cl_evnt.profile.queued)
     def start_to_end(self):
         return 1e-9*(self.cl_evnt.profile.end - self.cl_evnt.profile.start)
+
+
+class PyOpenCLHostTimer(WallTimer):
+    def __init__(self,tag,nbytes):
+        super(PyOpenCLHostTimer,self).__init__(tag)
+        self.etype   = "host"
+        self.nbytes  = nbytes
+    def summary(self):
+        res = "Host Event: %s (nbytes=%d)\n" % (self.tag,self.nbytes)
+        res += "  Start  to End:    %s\n" % repr(self.start_to_end())
+        return res
+    def queued_to_end(self):
+        return self.get_elapsed()
+    def start_to_end(self):
+        return self.get_elapsed()
+
 
 class PyOpenCLContextManager(object):
     plat_id  = 0
@@ -231,6 +267,8 @@ class PyOpenCLContextManager(object):
         if not found_pyopencl:
             return None
         if cls.ctx is None:
+            csetup = PyOpenCLHostTimer("ctx_setup",0)
+            csetup .start()
             platform = cl.get_platforms()[cls.plat_id]
             device = platform.get_devices()[cls.dev_id]
             cinfo  = "OpenCL Context Info\n"
@@ -249,17 +287,23 @@ class PyOpenCLContextManager(object):
             cls.device = device
             cls.ctx = cl.Context([device])
             cls.ctx_info = cinfo
+            csetup.stop()
+            PyOpenCLContextManager.add_host_event(csetup)
         return cls.ctx
     @classmethod
     def dispatch_kernel(cls,kernel_source,out_shape,buffers):
+        kdisp = PyOpenCLHostTimer("kdispatch",0)
+        kdisp.start()
         ibuffs = [ b.cl_obj for b in buffers]
         prg    = cl.Program(cls.context(),kernel_source).build()
-        # TODO change kmain?
         evnt   = prg.kmain(cls.queue(), out_shape, None, *ibuffs)
         cls.add_event("kexec",evnt)
+        kdisp.stop()
+        PyOpenCLContextManager.add_host_event(kdisp)
         return evnt
     @classmethod
     def device_memory(cls):
+        cls.context()
         return cls.device.global_mem_size
     @classmethod
     def clear_events(cls):
@@ -267,6 +311,9 @@ class PyOpenCLContextManager(object):
     @classmethod
     def add_event(cls,tag,cl_evnt,nbytes=0):
         cls.events.append(PyOpenCLContextEvent(tag,cl_evnt,nbytes))
+    @classmethod
+    def add_host_event(cls,host_timer):
+        cls.events.append(host_timer)
     @classmethod
     def events_summary(cls):
         res      = ""
@@ -284,7 +331,9 @@ class PyOpenCLContextManager(object):
                 t["qte"]    += e.queued_to_end()
                 t["ste"]    += e.start_to_end()
             else:
-                ttag[e.tag] = {"nevents":1,
+                ttag[e.tag] = {"tag": e.tag,
+                               "etype": e.etype,
+                               "nevents":1,
                                "nbytes":e.nbytes,
                                "qte":e.queued_to_end(),
                                "ste":e.start_to_end()}
@@ -293,6 +342,7 @@ class PyOpenCLContextManager(object):
         res += "Tag Totals:\n"
         for k,v in ttag.items():
             nevents = v["nevents"]
+            etype   = v["etype"]
             nbytes  = v["nbytes"]
             qte     = v["qte"]
             ste     = v["ste"]
@@ -302,20 +352,24 @@ class PyOpenCLContextManager(object):
             gbps    = ngbytes / ste
             v["avg_bytes"]  = avg_bytes
             v["gbps"]       = gbps
-            res += " Tag: %s\n" % k
+            res += " Tag: %s (%s)\n" % (k ,etype)
             res += "  Total # of events: %d\n" % nevents
             res += "  Total queued to end: %s (s)\n" % repr(qte)
             res += "  Total start  to end: %s (s)\n" % repr(ste)
             res += "  Total nbytes: %s\n" % nbytes_str(nbytes)
             res += "  Total gb/s: %s [ngbytes / ste]\n" % repr(gbps)
             res += "  Average nbytes: %s\n" % nbytes_str(avg_bytes)
+            res += "%s\n" % v
         res += "Total # of events: %d\n" % tnevents
         res += "Total nbytes: %s\n" % nbytes_str(tbytes)
         res += "Total queued to end: %s (s)\n" % repr(tqte)
-        ttag["total"] = {"nevents": tnevents,
+        ttag["total"] = {"tag":"total",
+                         "etype":"total",
+                         "nevents": tnevents,
                          "nbytes":  tbytes,
                          "qte":     tqte}
-        return res
+        res += "%s\n" % ttag["total"]
+        return res, ttag
 
 
 Manager = PyOpenCLContextManager

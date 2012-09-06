@@ -56,6 +56,8 @@ def main():
     define_flow_vpe("flow",expr=wfile,filter_set=fset)
     visit.AddPlot("Pseudocolor","flow")
     visit.DrawPlots()
+    #visit.ClearAllWindows()
+    #visit.DrawPlots()
 
 if __visit_script_file__ == __visit_source_file__:
     main()

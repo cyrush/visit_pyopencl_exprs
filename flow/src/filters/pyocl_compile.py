@@ -35,6 +35,7 @@ class PyOpenCLCompileContext(Context):
         self.out_shape = None
         pyocl_env.Manager.set_device_id(dev_id)
         pyocl_env.Manager.clear_events()
+        pyocl_env.Pool.reset()
     def set_device_id(self,dev_id):
         pyocl_env.Manager.set_device_id(dev_id)
     def bind_data(self,obj):
@@ -73,6 +74,8 @@ class PyOpenCLCompileContext(Context):
         self.stmts.append(stmt)
         return (res_name,None)
     def compile(self):
+        act = pyocl_env.PyOpenCLHostTimer("auto_kgen",0)
+        act.start()
         res = ""
         for kern in self.kernels.values():
             res += kern
@@ -100,6 +103,8 @@ class PyOpenCLCompileContext(Context):
             res += "%s %s\n" % (ident,stmt)
         res += "%s out[gid] = _auto_res_%04d;\n" % (ident,len(self.stmts)-1)
         res += "%s}\n" % ident
+        act.stop()
+        pyocl_env.Manager.add_host_event(act)
         return res
     def run(self):
         # run in context

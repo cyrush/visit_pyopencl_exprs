@@ -31,6 +31,7 @@ class PyOpenCLOpsContext(Context):
     def start(self,dev_id = 0):
         pyocl_env.Manager.set_device_id(dev_id)
         pyocl_env.Manager.clear_events()
+        pyocl_env.Pool.reset()
     def set_device_id(self,dev_id):
         pyocl_env.Manager.set_device_id(dev_id)
     def set_output_shape(self,shape):
@@ -60,7 +61,11 @@ class PyOpenCLOpsContext(Context):
         pyocl_env.Manager.dispatch_kernel(kernel_source,
                                           out_shape,
                                           buffers)
-        return dest_buf.read()
+        r= dest_buf.read()
+        for b in buffers:
+            b.release()
+        pyocl_env.Pool.reclaim()
+        return r
     def events_summary(self):
         return pyocl_env.Manager.events_summary()
     def __find_valid_shape(self,inputs):
