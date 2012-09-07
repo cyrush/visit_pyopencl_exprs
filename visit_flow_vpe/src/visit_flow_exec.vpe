@@ -43,8 +43,11 @@ class FlowExecExpr(SimplePythonExpression):
         plat   = int(self.arguments[2])
         dev    = int(self.arguments[3])
         #ctx.set_device_id(mpicom.rank() % 2)
+        ctx = None
         if wstype == "src":
             w = Workspace.load_workspace_script(src=self.arguments[1])
+            if w.has_context("root"):
+                ctx = w.get_context("root")
         else:
             w = Workspace()
             w.register_filters(module(wstype))

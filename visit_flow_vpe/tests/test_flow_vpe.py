@@ -30,14 +30,13 @@ from visit_flow_vpe import *
 tests_dir    = os.path.split(__file__)[0]
 examples_dir = pjoin(tests_dir,"..","examples")
 
-
 class TestFlowVPE(unittest.TestCase):
     def setUp(self):
         self.data_path = pjoin(tests_dir,"_data","rect2d.silo")
         visit.OpenDatabase(self.data_path)
         print ""
     def setup_workspace(self,file):
-        define_flow_vpe("flow",file=pjoin(examples_dir,file))
+        define_flow_vpe("flow",pjoin(examples_dir,file),"pyocl_ops",0,0)
         visit.AddPlot("Pseudocolor","flow")
         visit.DrawPlots()
         visit.DefineScalarExpression("check","flow - ((d + p)^2.0 + (d-p)^2.0)")

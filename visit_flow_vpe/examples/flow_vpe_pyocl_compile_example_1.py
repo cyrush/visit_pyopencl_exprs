@@ -20,7 +20,7 @@ def setup_workspace():
     w = Workspace()
     w.register_filters(pyocl_compile)
     ctx  = w.add_context("pyocl_compile","root")
-    ctx.start()
+    ctx.start(0,0)
     ctx.add_filter("add","f1")
     ctx.add_filter("sub","f2")
     ctx.add_filter("mult","f3")

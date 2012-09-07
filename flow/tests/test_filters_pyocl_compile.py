@@ -40,7 +40,7 @@ class TestPyOpenCLCompile(unittest.TestCase):
         # add our sources to the registry
         ctx.registry_add(":src_a",v_a)
         ctx.registry_add(":src_b",v_b)
-        ctx.start()
+        ctx.start(0,0)
         ctx.add_filter("add","f1")
         ctx.add_filter("sub","f2")
         ctx.add_filter("mult","f3")
