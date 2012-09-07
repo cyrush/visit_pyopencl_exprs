@@ -1,6 +1,6 @@
-du = grad(dims,x,y,z,vx)
-dv = grad(dims,x,y,z,vy)
-dw = grad(dims,x,y,z,vz)
+du = grad3d(vx,dims,x,y,z)
+dv = grad3d(vy,dims,x,y,z)
+dw = grad3d(vz,dims,x,y,z)
 vort_x = dw[1] - dv[2]
 vort_y = du[2] - dw[0]
 vort_z = dv[0] - du[1]
