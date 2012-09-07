@@ -53,7 +53,7 @@ def prep_results_dir(tag):
         shutil.rmtree(rdir)
     paths["root"]  = rdir
     paths["cpu"]   = pjoin(rdir,"cpu.visit")
-    paths["hand"]  = pjoin(rdir,"gpu.hand.coded")
+    paths["hand"]  = pjoin(rdir,"reference")
     paths["pyocl_compile"] = pjoin(rdir,"pyocl_compile")
     paths["pyocl_ops"]     = pjoin(rdir,"pyocl_ops")
     paths["pyocl_batch"]   = pjoin(rdir,"pyocl_batch")
@@ -106,9 +106,9 @@ def exe_gpu_hand(idx, rdirs,rtype,dbfile,plat,dev,tstride,nprocs,method):
         script = test_script(sdir,"..","standalone","vector_mag","visit_pyopencl_vector_mag_exec.py")
     else:
         script = test_script(sdir,"..","standalone","q_criterion","visit_pyopencl_q_criterion_exec.py")
-    print "\nEXEC:GPU HAND\n   Dset:%s\n   Script:%s\n" % (test_file,script)
+    print "\nEXEC:GPU HAND\n   Dset:%s\n   Script:%s\n" % (dbfile,script)
     cmd  = "cd %s && " % dest_dir
-    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s %d %d -save" % (script,dbfile,plat,dev)
+    cmd += vcmd(nprocs,method,tstride=tstride) + " %s %s %d %d -save" % (script,dbfile,plat,dev)
     cmd += " > run.out.txt"
     sexe(cmd)
 
@@ -134,8 +134,8 @@ def exe_flow(idx,rdirs,rtype,fset,dbfile,plat,dev,tstride,nprocs,method):
 
 
 def exe_single(idx, params):
-    #exe_gpu_hand(idx, **params)
     #exe_cpu(idx,**params)
+    exe_gpu_hand(idx, **params)
     exe_flow(idx, fset = "pyocl_ops", **params)
     exe_flow(idx, fset = "pyocl_batch", **params)
     exe_flow(idx, fset = "pyocl_compile", **params)

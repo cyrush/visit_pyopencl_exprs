@@ -154,7 +154,7 @@ class PyOpenCLBufferPool(object):
                 b.reclaim()
     @classmethod
     def release_buffer(cls,buff):
-        cls.total_alloc -= b.nbytes
+        cls.total_alloc -= buff.nbytes
         cls.buffers.remove(buff)
     @classmethod
     def __create_buffer(cls,shape,dtype):
