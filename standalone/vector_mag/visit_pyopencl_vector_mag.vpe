@@ -35,9 +35,10 @@ class PyOpenCLVectorMag(SimplePythonExpression):
         ksrc = open(pjoin(self.arguments[0],"cl","vector_mag.cl")).read()
         plat = int(self.arguments[1])
         dev  = int(self.arguments[2])
-        fsetup.stop()
         pyocl_env.Manager.select_device(plat,dev)
+        pyocl_env.Manager.clear_events()
         pyocl_env.Pool.reset()
+        fsetup.stop()
         tvtk.start()
         ncells  = ds_in.GetNumberOfCells()
         cl_data = ds_in.GetCellData()
@@ -72,7 +73,7 @@ class PyOpenCLVectorMag(SimplePythonExpression):
         pyocl_env.Manager.dispatch_kernel(ksrc,
                                           out.shape,
                                           buffers)
-        out = dest_buf.read()
+        out[:] = dest_buf.read()
 
 
 py_filter = PyOpenCLVectorMag
