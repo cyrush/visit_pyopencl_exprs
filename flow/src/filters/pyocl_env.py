@@ -25,6 +25,7 @@ __all__ = ["Manager",
 
 from ..core import WallTimer, log
 
+
 def info(msg):
     log.info(msg,"pyocl_env")
 
@@ -133,16 +134,6 @@ class PyOpenCLBufferPool(object):
                 b.reactivate(shape,dtype)
                 res_buf = b
                 break
-        # to use mem wisely, reap when exact match doesn't occur
-        # if res_buf is None:
-        #     for b in avail:
-        #         # now simply check if the buffer is big enough
-        #         if b.nbytes >= rbytes:
-        #             # we can reuse
-        #             info("PyOpenCLBufferPool reuse: " + str(b))
-        #             b.reactivate(shape,dtype)
-        #             res_buf = b
-        #             break
         if res_buf is None:
             res_buf = cls.__create_buffer(shape,dtype)
         return res_buf

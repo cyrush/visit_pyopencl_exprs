@@ -41,12 +41,15 @@ def save_window():
     SaveWindow()
 sdir = os.path.split(os.path.abspath(__visit_script_file__))[0]
 
-def exe_3d(db):
+def exe_3d(db,plat,dev):
     OpenDatabase(db)
     fvpe = pjoin(sdir,"visit_pyopencl_q_criterion.vpe")
     DefinePythonExpression("q_crit",
                             source="PythonFilter.load('%s')\n" % fvpe,
-                            args=["x","y","z","vx","vy","vz",'"%s"' % sdir])
+                            args=["vx","vy","vz","x","y","z",
+                                  '"%s"' % sdir,
+                                  '"%d"' % plat,
+                                  '"%d"' % dev])
     AddPlot("Pseudocolor","q_crit")
     DrawPlots()
     if "-save" in Argv():
@@ -54,13 +57,18 @@ def exe_3d(db):
     if "-nowin" in sys.argv:
         sys.exit(0)
 
-def main(db):
-    exe_3d(db)
 
 if __visit_script_file__ == __visit_source_file__:
     args = Argv()
     db = "../../rt3d_one_chunk.silo"
+    plat = 0
+    dev  = 0
     if len(args) > 0:
         db = args[0]
-    main(db)
+    if len(args) > 1:
+        plat = int(args[1])
+    if len(args) > 2:
+        dev = int(args[2])
+    exe_3d(db,plat,dev)
+
 

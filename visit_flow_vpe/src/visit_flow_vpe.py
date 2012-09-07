@@ -57,6 +57,25 @@ def define_flow_vpe(ename,expr,
     args.extend(['"%d"' % platform_id, '"%d"' % device_id])
     visit.DefinePythonExpression(ename,file=fvpe,args=args)
 
+def vpe_timing_info(ttag,wcomps,wtot):
+    itot  = 0
+    ctx_ste = ttag["total"]["ste"]
+    ctx_qte = ttag["total"]["qte"]
+    ctx_ste_diff = wtot.get_elapsed() - ctx_ste
+    ctx_ste_diff_perc = str(round(100.0*ctx_ste_diff/wtot.get_elapsed(),2)) + " (%)"
+    ctx_qte_diff = wtot.get_elapsed() - ctx_qte
+    ctx_qte_diff_perc = str(round(100.0*ctx_qte_diff/wtot.get_elapsed(),2)) + " (%)"
+    for wcomp in wcomps:
+        itot += wcomp.get_elapsed()
+        print "::TimingInfo  %s" % wcomp
+    print "::TimingInfo  %s" % wtot
+    print "::TimingInfo  wtot - (all_wcomps) = %s" % repr(wtot.get_elapsed() - itot)
+    print "::TimingInfo  ctx_ste = %s" % repr(ctx_ste)
+    print "::TimingInfo  wtot - ctx_ste = %s" % repr(ctx_ste_diff)
+    print "::TimingInfo  ctx_qte_diff/wtot = %s " % ctx_ste_diff_perc
+    print "::TimingInfo  ctx_qte = %s" % repr(ctx_qte)
+    print "::TimingInfo  wtot - ctx_qte = %s" % repr(ctx_qte_diff)
+    print "::TimingInfo  ctx_qte_diff/wtot = %s " % ctx_qte_diff_perc
 
-__all__ = [ "define_flow_vpe"]
+__all__ = [ "define_flow_vpe","vpe_timing_info"]
 

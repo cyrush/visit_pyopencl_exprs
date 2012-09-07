@@ -203,13 +203,13 @@ def fetch_base_timing_info(f):
     for l in lines:
         if l.lower().count("platform ") > 0 or l.lower().count("device ") > 0 or l.lower().count("context info") > 0:
             res += l
-        if l.count("FlowExecExpr::TimingInfo  exe_flow") == 1:
+        if l.count("::TimingInfo  exe_main") == 1:
             flow  = float(l.split()[-2].strip())
             res += "\n  exe_flow (host) = %s\n" % str(flow)
-        if l.count("FlowExecExpr::TimingInfo  ctx_ste =") == 1:
+        if l.count("::TimingInfo  ctx_ste =") == 1:
             ste  = float(l.split()[-1].strip())
             res += "  ctx_ste (dev)   = %s\n" % str(ste)
-        if l.count("FlowExecExpr::TimingInfo  ctx_qte =") == 1:
+        if l.count("::TimingInfo  ctx_qte =") == 1:
             qte  = float(l.split()[-1].strip())
             res += "  ctx_qte (dev)   = %s\n" % str(qte)
     return res,flow,ste,qte

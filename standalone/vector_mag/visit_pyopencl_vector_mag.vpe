@@ -9,6 +9,11 @@ import pyopencl as cl
 import vtk.util.numpy_support as vnp
 from os.path import join as pjoin
 
+import hotshot
+from flow.filters import pyocl_env
+from flow.core.common import WallTimer
+from visit_flow_vpe import vpe_timing_info
+
 class PyOpenCLVectorMag(SimplePythonExpression):
     def __init__(self):
         SimplePythonExpression.__init__(self)
@@ -16,51 +21,58 @@ class PyOpenCLVectorMag(SimplePythonExpression):
         self.description = "PyOpenCLVectorMag"
         self.output_is_point_var = False
         self.output_dimension = 1
-        dev_id = mpicom.rank() % 2
-        platform = cl.get_platforms()[0]
-        device   = platform.get_devices()[dev_id]
-        self.ctx = cl.Context([device])
-        #self.queue = cl.CommandQueue(self.ctx,properties=cl.command_queue_properties.PROFILING_ENABLE)
-        self.queue = cl.CommandQueue(self.ctx)
-        self.prog = None
+        self.profile = True
     def derive_variable(self,ds_in,domain_id):
-        if self.prog is None:
-            spath = self.arguments[-1]
-            spath = pjoin(spath,"cl","vector_mag.cl")
-            self.prog  = cl.Program(self.ctx,open(spath).read()).build()
-        ncells = ds_in.GetNumberOfCells()
-        res = vtk.vtkFloatArray()
-        res.SetNumberOfComponents(1)
-        res.SetNumberOfTuples(ncells)
+        if self.profile:
+            prof   = hotshot.Profile("hotshot_vpe_exec")
+            prof.start()
+        wtot   = WallTimer("derive_variable")
+        fsetup = WallTimer("setup_exe")
+        tvtk   = WallTimer("vtk_setup")
+        fexec  = WallTimer("exe_main")
+        wtot.start()
+        fsetup.start()
+        ksrc = open(pjoin(self.arguments[0],"cl","vector_mag.cl")).read()
+        plat = int(self.arguments[1])
+        dev  = int(self.arguments[2])
+        fsetup.stop()
+        pyocl_env.Manager.select_device(plat,dev)
+        pyocl_env.Pool.reset()
+        tvtk.start()
+        ncells  = ds_in.GetNumberOfCells()
         cl_data = ds_in.GetCellData()
         pt_data = ds_in.GetPointData()
         u = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[0]))
         v = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[1]))
         w = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[2]))
+        res = vtk.vtkFloatArray()
+        res.SetNumberOfComponents(1)
+        res.SetNumberOfTuples(ncells)
         o = vnp.vtk_to_numpy(res)
-        self.__exec_3d(u,v,w,o)
+        tvtk.stop()
+        fexec.start()
+        self.__exec_3d(ksrc,u,v,w,o)
+        fexec.stop()
+        wtot.stop()
+        if self.profile:
+            prof.close()
+        txt, ttag = pyocl_env.Manager.events_summary()
+        print txt
+        vpe_timing_info(ttag,[fsetup,tvtk, fexec],wtot)
         return res
-    def __exec_3d(self,u,v,w,out):
-#         print "shapes:"
-#         print " x = %s" % str(x.shape)
-#         print " y = %s" % str(y.shape)
-#         print " z = %s" % str(z.shape)
-#         print " u = %s" % str(u.shape)
-#         print " v = %s" % str(v.shape)
-#         print " w = %s" % str(w.shape)
-#         print " o = %s" % str(out.shape)
-        mf = cl.mem_flags
-        u_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=u)
-        v_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=v)
-        w_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=w)
-        dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
-        #event = self.prog.vorticity_3d(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
-        self.prog.vector_mag(self.queue, out.shape, None,  u_buf,v_buf, w_buf, dest_buf)
-        cl.enqueue_copy(self.queue, out, dest_buf)
-        #event.wait()
-        #elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
-        #                  event.get_profiling_info( cl.profiling_info.START))
-        #print("Execution time: %g s" % elapsed)
+    def __exec_3d(self,ksrc,u,v,w,out):
+        u_buf = pyocl_env.Pool.request_buffer(u.shape,u.dtype)
+        v_buf = pyocl_env.Pool.request_buffer(v.shape,v.dtype)
+        w_buf = pyocl_env.Pool.request_buffer(w.shape,w.dtype)
+        dest_buf = pyocl_env.Pool.request_buffer(out.shape,out.dtype)
+        u_buf.write(u)
+        v_buf.write(v)
+        w_buf.write(w)
+        buffers = [ u_buf,v_buf,w_buf,dest_buf]
+        pyocl_env.Manager.dispatch_kernel(ksrc,
+                                          out.shape,
+                                          buffers)
+        out = dest_buf.read()
 
 
 py_filter = PyOpenCLVectorMag

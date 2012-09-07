@@ -42,12 +42,15 @@ def save_window():
 
 sdir = os.path.split(os.path.abspath(__visit_script_file__))[0]
 
-def exe_3d(db):
+def exe_3d(db,plat,dev):
     OpenDatabase(db)
     fvpe = pjoin(sdir,"visit_pyopencl_vector_mag.vpe") 
     DefinePythonExpression("vel_mag",
                             source="PythonFilter.load('%s')\n" % fvpe,
-                            args=["vx","vy","vz",'"%s"' % sdir])
+                            args=["vx","vy","vz",
+                                  '"%s"' % sdir,
+                                  '"%d"' % plat,
+                                  '"%d"' % dev])
     AddPlot("Pseudocolor","vel_mag")
     DrawPlots()
     if "-save" in Argv():
@@ -56,15 +59,16 @@ def exe_3d(db):
         sys.exit(0)
 
 
-def main(db):
-    exe_3d(db)
-
-
 if __visit_script_file__ == __visit_source_file__:
     args = Argv()
     db = "../../rt3d_one_chunk.silo"
+    plat = 0
+    dev  = 0
     if len(args) > 0:
         db = args[0]
-    main(db)
-
+    if len(args) > 1:
+        plat = int(args[1])
+    if len(args) > 2:
+        dev = int(args[2])
+    exe_3d(db,plat,dev)
 

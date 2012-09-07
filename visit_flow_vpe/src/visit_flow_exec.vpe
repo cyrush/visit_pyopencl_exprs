@@ -17,6 +17,7 @@ import vtk.util.numpy_support as vnp
 
 from flow import *
 from flow.filters import *
+from visit_flow_vpe import vpe_timing_info
 import hotshot
 from hotshot import stats
 
@@ -29,12 +30,12 @@ class FlowExecExpr(SimplePythonExpression):
         self.profile = True
     def derive_variable(self,ds_in,domain_id):
         if self.profile:
-            prof   = hotshot.Profile("hotshot_flow_exec")
+            prof   = hotshot.Profile("hotshot_vpe_exec")
             prof.start()
         wtot   = WallTimer("derive_variable")
-        fsetup = WallTimer("setup_flow")
+        fsetup = WallTimer("setup_exe")
         tvtk   = WallTimer("vtk_setup")
-        fexec  = WallTimer("exe_flow")
+        fexec  = WallTimer("exe_main")
         wtot.start()
         fsetup.start()
         # get workspace
@@ -95,28 +96,9 @@ class FlowExecExpr(SimplePythonExpression):
             prof.close()
         if w.has_context("root"):
             txt, ttag = ctx.events_summary()
-            self.timing_info(txt,ttag,fsetup, tvtk, fexec,wtot)
+            print txt
+            vpe_timing_info(ttag,[fsetup, tvtk, fexec],wtot)
         return res
-    def timing_info(self,txt,ttag,fsetup, tvtk, fexec,wtot):
-        print txt
-        for t in [fsetup, tvtk, fexec]:
-            print "FlowExecExpr::TimingInfo  %s" % t
-        print "FlowExecExpr::TimingInfo  %s" % wtot
-        itot = fsetup.get_elapsed() + tvtk.get_elapsed() + fexec.get_elapsed()
-        print "FlowExecExpr::TimingInfo  wtot - (fsetup+tvtk+fexe) = %s" % repr(wtot.get_elapsed() - itot)
-        ctx_ste =  ttag["total"]["ste"]
-        ctx_qte = ttag["total"]["qte"]
-        ctx_ste_diff = wtot.get_elapsed() - ctx_ste
-        ctx_ste_diff_perc = str(round(100.0*ctx_ste_diff/wtot.get_elapsed(),2)) + " (%)"
-        ctx_qte_diff = wtot.get_elapsed() - ctx_qte
-        ctx_qte_diff_perc = str(round(100.0*ctx_qte_diff/wtot.get_elapsed(),2)) + " (%)"
-        print "FlowExecExpr::TimingInfo  ctx_ste = %s" % repr(ctx_ste)
-        print "FlowExecExpr::TimingInfo  wtot - ctx_ste = %s" % repr(ctx_ste_diff)
-        print "FlowExecExpr::TimingInfo  ctx_qte_diff/wtot = %s " % ctx_ste_diff_perc
-        print "FlowExecExpr::TimingInfo  ctx_qte = %s" % repr(ctx_qte)
-        print "FlowExecExpr::TimingInfo  wtot - ctx_qte = %s" % repr(ctx_qte_diff)
-        print "FlowExecExpr::TimingInfo  ctx_qte_diff/wtot = %s " % ctx_qte_diff_perc
-
 
 
 py_filter = FlowExecExpr

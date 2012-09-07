@@ -9,6 +9,11 @@ import pyopencl as cl
 import vtk.util.numpy_support as vnp
 from os.path import join as pjoin
 
+import hotshot
+from flow.filters import pyocl_env
+from flow.core.common import WallTimer
+from visit_flow_vpe import vpe_timing_info
+
 class PyOpenCLVorticity(SimplePythonExpression):
     def __init__(self):
         SimplePythonExpression.__init__(self)
@@ -16,18 +21,22 @@ class PyOpenCLVorticity(SimplePythonExpression):
         self.description = "PyOpenCLVorticity"
         self.output_is_point_var = False
         self.output_dimension = 1
-        dev_id = mpicom.rank() % 2
-        platform = cl.get_platforms()[0]
-        device   = platform.get_devices()[dev_id]
-        self.ctx = cl.Context([device])
-        #self.queue = cl.CommandQueue(self.ctx,properties=cl.command_queue_properties.PROFILING_ENABLE)
-        self.queue = cl.CommandQueue(self.ctx)
-        self.prog = None
+        self.profile = True
     def derive_variable(self,ds_in,domain_id):
-        if self.prog is None:
-            spath = self.arguments[-1]
-            spath = pjoin(spath,"cl","vorticity_3d.cl")
-            self.prog  = cl.Program(self.ctx,open(spath).read()).build()
+        if self.profile:
+            prof   = hotshot.Profile("hotshot_vpe_exec")
+            prof.start()
+        wtot   = WallTimer("derive_variable")
+        fsetup = WallTimer("setup_exe")
+        tvtk   = WallTimer("vtk_setup")
+        fexec  = WallTimer("exe_main")
+        wtot.start()
+        fsetup.start()
+        ksrc = open(pjoin(self.arguments[0],"cl","vorticity_3d.cl")).read()
+        plat = int(self.arguments[1])
+        dev  = int(self.arguments[2])
+        fsetup.stop()
+        tvtk.start()
         ncells = ds_in.GetNumberOfCells()
         res = vtk.vtkFloatArray()
         res.SetNumberOfComponents(1)
@@ -35,42 +44,49 @@ class PyOpenCLVorticity(SimplePythonExpression):
         cl_data = ds_in.GetCellData()
         pt_data = ds_in.GetPointData()
         dims    = ds_in.GetDimensions()
-        x = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[0]))
-        y = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[1]))
-        z = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[2]))
-        u = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[3]))
-        v = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[4]))
-        w = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[5]))
+        u = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[0]))
+        v = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[1]))
+        w = vnp.vtk_to_numpy(cl_data.GetArray(self.input_var_names[2]))
+        x = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[3]))
+        y = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[4]))
+        z = vnp.vtk_to_numpy(pt_data.GetArray(self.input_var_names[5]))
         o = vnp.vtk_to_numpy(res)
-        self.__exec_3d(dims,x,y,z,u,v,w,o)
+        tvtk.stop()
+        fexec.start()
+        self.__exec_3d(ksrc,u,v,w,dims,x,y,z,o)
+        fexec.stop()
+        wtot.stop()
+        if self.profile:
+            prof.close()
+        txt, ttag = pyocl_env.Manager.events_summary()
+        vpe_timing_info(ttag,[fsetup,tvtk, fexec],wtot)
+        print txt
         return res
-    def __exec_3d(self,dims,x,y,z,u,v,w,out):
-#         print "shapes:"
-#         print " x = %s" % str(x.shape)
-#         print " y = %s" % str(y.shape)
-#         print " z = %s" % str(z.shape)
-#         print " u = %s" % str(u.shape)
-#         print " v = %s" % str(v.shape)
-#         print " w = %s" % str(w.shape)
-#         print " o = %s" % str(out.shape)
-        mf = cl.mem_flags
+    def __exec_3d(self,ksrc,u,v,w,dims,x,y,z,out):
         d = npy.zeros((3,1),dtype=npy.int32)
         d[:,0] = (dims[0],dims[1],dims[2])
-        d_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=d)
-        x_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=x)
-        y_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=y)
-        z_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=z)
-        u_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=u)
-        v_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=v)
-        w_buf  = cl.Buffer(self.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=w)
-        dest_buf = cl.Buffer(self.ctx, mf.WRITE_ONLY, out.nbytes)
-        #event = self.prog.vorticity_3d(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
-        self.prog.vorticity_3d(self.queue, out.shape, None, d_buf, x_buf,y_buf, z_buf, u_buf,v_buf, w_buf, dest_buf)
-        cl.enqueue_copy(self.queue, out, dest_buf)
-        #event.wait()
-        #elapsed =  1e-9 *(event.get_profiling_info( cl.profiling_info.END ) -
-        #                  event.get_profiling_info( cl.profiling_info.START))
-        #print("Execution time: %g s" % elapsed)
-
+        u_buf = pyocl_env.Pool.request_buffer(u.shape,u.dtype)
+        v_buf = pyocl_env.Pool.request_buffer(v.shape,v.dtype)
+        w_buf = pyocl_env.Pool.request_buffer(w.shape,w.dtype)
+        d_buf = pyocl_env.Pool.request_buffer(d.shape,d.dtype)
+        x_buf = pyocl_env.Pool.request_buffer(x.shape,x.dtype)
+        y_buf = pyocl_env.Pool.request_buffer(y.shape,y.dtype)
+        z_buf = pyocl_env.Pool.request_buffer(z.shape,z.dtype)
+        dest_buf = pyocl_env.Pool.request_buffer(out.shape,out.dtype)
+        d_buf.write(d)
+        u_buf.write(u)
+        v_buf.write(v)
+        w_buf.write(w)
+        x_buf.write(z)
+        y_buf.write(y)
+        z_buf.write(z)
+        buffers = [ u_buf,v_buf,w_buf,
+                    d_buf,
+                    x_buf,y_buf,z_buf,
+                    dest_buf]
+        pyocl_env.Manager.dispatch_kernel(ksrc,
+                                          out.shape,
+                                          buffers)
+        out = dest_buf.read()
  
 py_filter = PyOpenCLVorticity
