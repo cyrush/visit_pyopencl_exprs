@@ -134,9 +134,13 @@ class PyOpenCLBufferPool(object):
             # first check for exact buffer size match
             if b.nbytes == rbytes:
                 # we can reuse
+                dreuse = PyOpenCLHostTimer("dreuse",b.nbytes)
+                dreuse.start()
                 info("PyOpenCLBufferPool reuse: " + str(b))
                 b.reactivate(shape,dtype)
                 res_buf = b
+                dreuse.stop()
+                PyOpenCLContextManager.add_host_event(dreuse)
                 break
         if res_buf is None:
             res_buf = cls.__create_buffer(shape,dtype)
@@ -158,23 +162,27 @@ class PyOpenCLBufferPool(object):
                 b.reclaim()
     @classmethod
     def release_buffer(cls,buff):
+        drel = PyOpenCLHostTimer("drelease",buff.nbytes)
+        drel.start()
         cls.total_alloc -= buff.nbytes
         cls.buffers.remove(buff)
+        drel.stop()
+        PyOpenCLContextManager.add_host_event(drel)
     @classmethod
     def __create_buffer(cls,shape,dtype):
         # no suitable buffer, we need to create a new one
         rbytes = calc_nbytes(shape,dtype)
         # see if we have enough bytes left on the device
         # if not, try to  reclaim some memory from released buffers
+        # if rbytes > cls.available_device_memory():
+        cls.__reap(rbytes)
         if rbytes > cls.available_device_memory():
-            cls.__reap(rbytes)
-            if rbytes > cls.available_device_memory():
-                msg  = "Reap failed\n"
-                msg += " Free Request:       %s\n" % nbytes_str(rbytes)
-                msg += PyOpenCLContextManager.events_summary()[0] + "\n"
-                msg += cls.buffer_info() + "\n"
-                err(msg)
-                raise MemoryError
+            msg  = "Reap failed\n"
+            msg += " Free Request:       %s\n" % nbytes_str(rbytes)
+            msg += PyOpenCLContextManager.events_summary()[0] + "\n"
+            msg += cls.buffer_info() + "\n"
+            err(msg)
+            raise MemoryError
         res = PyOpenCLBuffer(len(cls.buffers),shape,dtype)
         cls.total_alloc += res.nbytes
         if cls.total_alloc > cls.max_alloc:
