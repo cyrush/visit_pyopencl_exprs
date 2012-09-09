@@ -54,8 +54,8 @@ def find_runs(base):
     res = {}
     rdir = os.path.split(base)[1]
     res["expr"] = rdir[1:rdir.find("_plat")]
-    dev  = rdir[rdir.find("_plat")+6:rdir.find("_dev")]
-    plat = rdir[rdir.find("_dev")+5:rdir.find("_ser")]
+    plat  = rdir[rdir.find("_plat")+6:rdir.find("_dev")]
+    dev = rdir[rdir.find("_dev")+5:rdir.find("_ser")]
     chunk = rdir[rdir.find("_size")+6:rdir.find("_timing")]
     res["dev"]   = int(dev)
     res["plat"]  = int(plat)
