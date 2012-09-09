@@ -85,6 +85,10 @@ if __name__ == "__main__":
         expr  = r["expr"]
         for k,v in r["cases"].items():
             if k.count("cpu")  == 0:
-                print did,",", expr,",", csize,",", k, ",", v["avg_win_ste"],",",v["avg_rout_ste"],",",v["avg_kexec_ste"],",",v["dev_max_alloc"]
+                win_ste = v["avg_win_ste"]
+                rout_ste = v["avg_rout_ste"]
+                ke_ste = v["avg_kexec_ste"]
+                dtot = win_ste + rout_ste + ke_ste
+                print did,",", expr,",", csize,",", k, ",", win_ste ,",", rout_ste ,",", ke_ste ,",", dtot, ",",v["dev_max_alloc"]
     
 
