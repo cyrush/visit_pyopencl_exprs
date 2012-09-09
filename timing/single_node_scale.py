@@ -22,7 +22,7 @@ def par(rtype,base_path,plat,dev):
         method = "srun"
     else:
         method = "mpirun"
-    for cs  in range(1,2):
+    for cs  in range(1,12):
         cmd    = "python run_timings.py "
         dbfile =  "rt3d_export_center_chunk_size_%03d.visit " % (cs)
         dbfile = pjoin(base_path,dbfile)
@@ -35,7 +35,7 @@ def ser(rtype,base_path,plat,dev):
         method = "srun"
     else:
         method = "mpirun"
-    for cs  in range(1,2):
+    for cs  in range(1,12):
         cmd  = "python run_timings.py "
         dbfile = "rt3d_export_center_with_coords_col_%04d_chunk_size_%03d_idx_0000.vtk " % (cs-1,cs)
         dbfile = pjoin(base_path,dbfile)

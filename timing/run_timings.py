@@ -93,7 +93,7 @@ def exe_cpu(idx, rdirs,rtype,dbfile,plat,dev,tstride,nprocs,method):
         script = test_script(sdir,"..","standalone","q_criterion","visit_q_criterion_exec.py")
     print "\nEXEC:CPU\n   Dset:%s\n   Script:%s\n" % (dbfile,test_script)
     cmd  = "cd %s && " % dest_dir
-    cmd += vcmd(nprocs,method,tstride=ts) + " %s %s %d %d -save" % (test_script,test_file)
+    cmd += vcmd(nprocs,method,tstride=tstride) + " %s %s -save" % (script,dbfile)
     cmd += " > run.out.txt"
     sexe(cmd)
 
@@ -134,7 +134,7 @@ def exe_flow(idx,rdirs,rtype,fset,dbfile,plat,dev,tstride,nprocs,method):
 
 
 def exe_single(idx, params):
-    #exe_cpu(idx,**params)
+    exe_cpu(idx,**params)
     exe_gpu_hand(idx, **params)
     exe_flow(idx, fset = "pyocl_ops", **params)
     exe_flow(idx, fset = "pyocl_batch", **params)
@@ -228,7 +228,6 @@ if __name__ == "__main__":
     args = sys.argv
     if len(args) > 1:
         params["rtype"] = args[1]
-    tag = params["rtype"]
     if len(args) > 2:
         params["dbfile"] = os.path.abspath(args[2])
     if len(args) > 3:
@@ -237,6 +236,7 @@ if __name__ == "__main__":
         params["dev"]  = int(args[4])
     if len(args) > 5:
         params["method"] = args[5]
+    tag =  "%s_plat_%d_dev_%d" % (params["rtype"],params["plat"],params["dev"])
     if len(args) > 6:
         ntests = int(args[6])
     if len(args) > 7:
