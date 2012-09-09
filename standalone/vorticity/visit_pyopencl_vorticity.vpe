@@ -21,7 +21,7 @@ class PyOpenCLVorticity(SimplePythonExpression):
         self.description = "PyOpenCLVorticity"
         self.output_is_point_var = False
         self.output_dimension = 1
-        self.profile = True
+        self.profile = False
     def derive_variable(self,ds_in,domain_id):
         if self.profile:
             prof   = hotshot.Profile("hotshot_vpe_exec")

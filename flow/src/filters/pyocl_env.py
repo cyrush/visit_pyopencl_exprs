@@ -112,6 +112,7 @@ class PyOpenCLBufferPool(object):
         # this should trigger pyopencl cleanup of buffers
         cls.buffers     = []
         cls.total_alloc = 0
+        cls.max_alloc   = 0
         rset.stop()
         PyOpenCLContextManager.add_host_event(rset)
     @classmethod
@@ -121,6 +122,9 @@ class PyOpenCLBufferPool(object):
         if percentage:
             res = round(100.0 * (float(res) / float(devm)),2)
         return res
+    @classmethod
+    def device_memory_high_water(cls):
+        return cls.max_alloc
     @classmethod
     def request_buffer(cls,shape,dtype):
         avail   = [b for b in cls.buffers if b.available()]
@@ -173,6 +177,8 @@ class PyOpenCLBufferPool(object):
                 raise MemoryError
         res = PyOpenCLBuffer(len(cls.buffers),shape,dtype)
         cls.total_alloc += res.nbytes
+        if cls.total_alloc > cls.max_alloc:
+            cls.max_alloc = cls.total_alloc
         cls.buffers.append(res)
         info(cls.buffer_info())
         return res
@@ -313,6 +319,7 @@ class PyOpenCLContextManager(object):
         tqte     = 0.0
         tste     = 0.0
         tnevents = len(cls.events)
+        maxalloc = PyOpenCLBufferPool.device_memory_high_water()
         for e in cls.events:
             tbytes += e.nbytes
             tqte   += e.queued_to_end()
@@ -357,12 +364,14 @@ class PyOpenCLContextManager(object):
         res += "Total nbytes: %s\n" % nbytes_str(tbytes)
         res += "Total start to end:  %s (s)\n" % repr(tqte)
         res += "Total queued to end: %s (s)\n" % repr(tste)
+        res += "Dev max alloc: %s \n" % nbytes_str(maxalloc)
         ttag["total"] = {"tag":"total",
                          "etype":"total",
                          "nevents": tnevents,
                          "nbytes":  tbytes,
                          "qte":     tqte,
-                         "ste":     tste}
+                         "ste":     tste,
+                         "dev_max_alloc": maxalloc}
         res += "%s\n" % ttag["total"]
         return res, ttag
 
