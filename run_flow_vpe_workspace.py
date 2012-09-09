@@ -21,6 +21,8 @@ def main():
     fset     = ""
     plat     = 0
     dev      = 0
+    sopt     = ""
+    nopt     = ""
     if nargs > 1:
         dbfile = os.path.abspath(args[1])
     if nargs > 2:
@@ -29,6 +31,9 @@ def main():
         plat = int(args[3])
     if nargs > 4:
         dev  = int(args[4])
+    if "-save" in args:
+        nopt = "-nowin"
+        sopt = "-save"
     # build py packages
     os.chdir("flow")
     sexe("visit -noconfig -nowin -cli -s setup.py build")
@@ -44,7 +49,7 @@ def main():
     rscript = os.path.abspath(pjoin(os.getcwd(),
                                     "visit_flow_vpe",
                                     "visit_exec_example_workspace.py"))
-    sexe("visit -cli -s %s %s %s %s %d %d" % (rscript,exprfile,dbfile,fset,plat,dev))
+    sexe("visit %s -cli -s %s %s %s %s %d %d %s" % (nopt,rscript,exprfile,dbfile,fset,plat,dev,sopt))
 
 
 if __name__ == "__main__":
