@@ -62,14 +62,13 @@ class PyOpenCLVectorMag(SimplePythonExpression):
         vpe_timing_info(ttag,[fsetup,tvtk, fexec],wtot)
         return res
     def __exec_3d(self,ksrc,u,v,w,out):
-        u_buf = pyocl_env.Pool.request_buffer(u.shape,u.dtype)
-        v_buf = pyocl_env.Pool.request_buffer(v.shape,v.dtype)
-        w_buf = pyocl_env.Pool.request_buffer(w.shape,w.dtype)
+        buffers = []
+        for ipt in [u,v,w]:
+            buf = pyocl_env.Pool.request_buffer(ipt.shape,ipt.dtype)
+            buf.write(ipt)
+            buffers.append(buf)
         dest_buf = pyocl_env.Pool.request_buffer(out.shape,out.dtype)
-        u_buf.write(u)
-        v_buf.write(v)
-        w_buf.write(w)
-        buffers = [ u_buf,v_buf,w_buf,dest_buf]
+        buffers.append(dest_buf)
         pyocl_env.Manager.dispatch_kernel(ksrc,
                                           out.shape,
                                           buffers)

@@ -67,25 +67,13 @@ class PyOpenCLQCrit(SimplePythonExpression):
     def __exec_3d(self,ksrc,u,v,w,dims,x,y,z,out):
         d = npy.zeros((3,1),dtype=npy.int32)
         d[:,0] = (dims[0],dims[1],dims[2])
-        u_buf = pyocl_env.Pool.request_buffer(u.shape,u.dtype)
-        v_buf = pyocl_env.Pool.request_buffer(v.shape,v.dtype)
-        w_buf = pyocl_env.Pool.request_buffer(w.shape,w.dtype)
-        d_buf = pyocl_env.Pool.request_buffer(d.shape,d.dtype)
-        x_buf = pyocl_env.Pool.request_buffer(x.shape,x.dtype)
-        y_buf = pyocl_env.Pool.request_buffer(y.shape,y.dtype)
-        z_buf = pyocl_env.Pool.request_buffer(z.shape,z.dtype)
+        buffers = []
+        for ipt in [u,v,w,d,x,y,z]:
+            buf = pyocl_env.Pool.request_buffer(ipt.shape,ipt.dtype)
+            buf.write(ipt)
+            buffers.append(buf)
         dest_buf = pyocl_env.Pool.request_buffer(out.shape,out.dtype)
-        d_buf.write(d)
-        u_buf.write(u)
-        v_buf.write(v)
-        w_buf.write(w)
-        x_buf.write(z)
-        y_buf.write(y)
-        z_buf.write(z)
-        buffers = [ u_buf,v_buf,w_buf,
-                    d_buf,
-                    x_buf,y_buf,z_buf,
-                    dest_buf]
+        buffers.append(dest_buf)
         pyocl_env.Manager.dispatch_kernel(ksrc,
                                           out.shape,
                                           buffers)
