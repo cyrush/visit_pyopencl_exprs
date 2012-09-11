@@ -56,7 +56,7 @@ def proc_runs(runs):
             res[k] = res[k] / float(len(runs))
     res["dev_tot_all"].sort()
     res["avg_dev_tot_all"] = sum(res["dev_tot_all"])  / float(len(res["dev_tot_all"]))
-    res["dev_tot_clamp"] = res["dev_tot_all"][1:-1] 
+    res["dev_tot_clamp"] = res["dev_tot_all"][1:-1]
     res["avg_dev_tot_clamp"] = sum(res["dev_tot_clamp"])  / float(len(res["dev_tot_clamp"]))
     return res
 
@@ -89,6 +89,7 @@ def main():
 
 if __name__ == "__main__":
     rx = main()
+    print "dev_id, expr,csize, kstart,  win_ste, rout_ste, ke_ste, dt_ste, dtc_ste, dev_max_alloc"
     for r in rx:
         did   = "d_%d_%d" % (r["plat"],r["dev"])
         csize = r["chunk"]
@@ -101,5 +102,5 @@ if __name__ == "__main__":
                 dt_ste   = v["avg_dev_tot_all"]
                 dtc_ste  = v["avg_dev_tot_clamp"]
                 print did,",", expr,",", csize,",", k, ",", win_ste ,",", rout_ste ,",", ke_ste ,",", dt_ste,",",dtc_ste, ",",v["dev_max_alloc"]
-    
+
 
