@@ -347,7 +347,7 @@ class PyOpenCLContextManager(object):
                                "ste":e.start_to_end()}
         tmbytes, tgbytes = nbytes_mb_gb(tbytes)
         res += cls.ctx_info
-        res += "Tag Totals:\n"
+        res += "\nTag Totals:\n"
         for k,v in ttag.items():
             nevents = v["nevents"]
             etype   = v["etype"]

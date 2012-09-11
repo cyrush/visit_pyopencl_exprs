@@ -43,7 +43,8 @@ class FlowExecExpr(SimplePythonExpression):
         wsexpr = self.arguments[1]
         plat   = int(self.arguments[2])
         dev    = int(self.arguments[3])
-        #ctx.set_device_id(mpicom.rank() % 2)
+        if mpicom.parallel():
+            dev = mpicom.rank() % 2
         ctx = None
         if wstype == "src":
             w = Workspace.load_workspace_script(src=self.arguments[1])
@@ -96,8 +97,15 @@ class FlowExecExpr(SimplePythonExpression):
             prof.close()
         if w.has_context("root"):
             txt, ttag = ctx.events_summary()
-            print txt
-            vpe_timing_info(ttag,[fsetup, tvtk, fexec],wtot)
+            tsummary = vpe_timing_info(ttag,[fsetup, tvtk, fexec],wtot)
+            if mpicom.parallel():
+                ofile = open("rank_%d_flow_vpe_out.txt" % mpicom.rank(),"w")
+                ofile.write(txt)
+                ofile.write(tsummary)
+                ofile.close()
+            else:
+                print txt
+                print tsummary
         return res
 
 
