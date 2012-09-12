@@ -52,7 +52,7 @@ def prep_results_dir(tag):
     if os.path.isdir(rdir):
         shutil.rmtree(rdir)
     paths["root"]  = rdir
-    paths["cpu"]   = pjoin(rdir,"cpu.visit")
+    paths["cpu"]   = pjoin(rdir,"cpu_visit_ref")
     paths["hand"]  = pjoin(rdir,"reference")
     paths["pyocl_compile"] = pjoin(rdir,"pyocl_compile")
     paths["pyocl_ops"]     = pjoin(rdir,"pyocl_ops")

@@ -69,7 +69,7 @@ def vpe_timing_info(ttag,wcomps,wtot):
     res +=  "\n::TimingInfo\n"
     for wcomp in wcomps:
         itot += wcomp.get_elapsed()
-        print "::TimingInfo  %s\n" % wcomp
+        res += "::TimingInfo  %s\n" % wcomp
     res +=  "::TimingInfo  %s\n" % wtot
     res +="\n"
     res += "::TimingInfo  wtot - (all_wcomps) = %s\n" % repr(wtot.get_elapsed() - itot)

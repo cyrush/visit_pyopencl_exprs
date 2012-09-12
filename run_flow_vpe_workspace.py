@@ -6,6 +6,9 @@ import subprocess
 from   os.path import join as pjoin
 
 
+def script_dir():
+    return os.path.split(os.path.abspath(__file__))[0]
+
 def sexe(cmd):
     print "[exec: %s]" % cmd
     subprocess.call(cmd,shell=True)
@@ -39,18 +42,20 @@ def main():
         pargs = args[args.index("-par") + 1]
         vcmd += " %s " % pargs
     # build py packages
-    os.chdir("flow")
+    cwd = os.getcwd()
+    sdir = script_dir()
+    os.chdir(pjoin(sdir,"flow"))
     sexe("visit -noconfig -nowin -cli -s setup.py build")
-    os.chdir(pjoin("..","visit_flow_vpe"))
+    os.chdir(pjoin(sdir,"visit_flow_vpe"))
     sexe("visit -noconfig -nowin -cli -s setup.py build")
-    os.chdir("..")
+    os.chdir(cwd)
     # set env vars
-    pypath = pjoin(os.getcwd(),"flow","build","lib")
-    pypath += ":" + pjoin(os.getcwd(),"visit_flow_vpe","build","lib")
+    pypath = pjoin(script_dir(),"flow","build","lib")
+    pypath += ":" + pjoin(script_dir(),"visit_flow_vpe","build","lib")
     if os.environ.has_key("PYTHONPATH"):
         pypath = os.environ["PYTHONPATH"] + ":" + pypath
     os.environ["PYTHONPATH"] = pypath
-    rscript = os.path.abspath(pjoin(os.getcwd(),
+    rscript = os.path.abspath(pjoin(script_dir(),
                                     "visit_flow_vpe",
                                     "visit_exec_example_workspace.py"))
     sexe("%s %s -cli -s %s %s %s %s %d %d %s" % (vcmd,nopt,rscript,exprfile,dbfile,fset,plat,dev,sopt))

@@ -288,7 +288,6 @@ class PyOpenCLContextManager(object):
             cinfo += "  Device max clock speed: %s MHz\n" % device.max_clock_frequency
             cinfo += "  Device compute units: %s\n" % device.max_compute_units
             info(cinfo)
-            print cinfo
             cls.device = device
             cls.ctx = cl.Context([device])
             cls.ctx_info = cinfo
