@@ -201,7 +201,7 @@ def setup_pyopencl(dest_dir=None):
     if os.path.isdir("pyopencl"):
         print "[removing existing source dir: `pyopencl']"
         shutil.rmtree("pyopencl")
-    pyocl_repo = "http://git.tiker.net/trees/pyopencl.git"
+    pyocl_repo = "https://github.com/inducer/pyopencl"
     print "[cloning `pyopencl' git repo (%s)]" % pyocl_repo
     sexe('git clone %s' % pyocl_repo)
     sexe('cd pyopencl; git submodule init; git submodule update');
@@ -263,9 +263,9 @@ def setup_all():
     setup_pypi_package("pytest","2.1.3","zip",dest_dir=dest)
     setup_pypi_package("pytools","2011.4",dest_dir=dest)
     setup_pypi_package("decorator","3.3.2",dest_dir=dest)
-    setup_pypi_package("pyopencl","2011.1.2",dest_dir=dest)
+    #setup_pypi_package("pyopencl","2011.1.2",dest_dir=dest)
     setup_pypi_package("ply","3.4",dest_dir=dest)
-    #setup_pyopencl(dest);
+    setup_pyopencl(dest);
 
 if using_visit:
     if __visit_script_file__ == __visit_source_file__:
