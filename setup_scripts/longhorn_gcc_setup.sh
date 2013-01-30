@@ -10,4 +10,4 @@ export PATH=$PATH:$VISIT_LOC
 export PYTHONPATH="$MODULE_DEST/lib/python2.6/site-packages"
 export CFLAGS="-I${TACC_CUDASDK_DIR}/OpenCL/common/inc"
 export LDFLAGS="-L${TACC_CUDASDK_DIR}/OpenCL/common/lib -loclUtil_x86_64 -L /scratch/01937/cyrush/libs/2.4.1/python/2.6.4/linux-x86_64_gcc-4.1/lib"
-visit -nowin -cli -s install_visit_pyopencl_support.py $MODULE_DEST
+visit -nowin -cli -s  setup_scripts/install_visit_pyopencl_support.py $MODULE_DEST
