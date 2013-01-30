@@ -1,6 +1,39 @@
+#*****************************************************************************
 #
-# ${disclaimer}
+# Copyright (c) 2000 - 2012, Lawrence Livermore National Security, LLC
+# Produced at the Lawrence Livermore National Laboratory
+# LLNL-CODE-442911
+# All rights reserved.
 #
+# This file is  part of VisIt. For  details, see https://visit.llnl.gov/.  The
+# full copyright notice is contained in the file COPYRIGHT located at the root
+# of the VisIt distribution or at http://www.llnl.gov/visit/copyright.html.
+#
+# Redistribution  and  use  in  source  and  binary  forms,  with  or  without
+# modification, are permitted provided that the following conditions are met:
+#
+#  - Redistributions of  source code must  retain the above  copyright notice,
+#    this list of conditions and the disclaimer below.
+#  - Redistributions in binary form must reproduce the above copyright notice,
+#    this  list of  conditions  and  the  disclaimer (as noted below)  in  the
+#    documentation and/or other materials provided with the distribution.
+#  - Neither the name of  the LLNS/LLNL nor the names of  its contributors may
+#    be used to endorse or promote products derived from this software without
+#    specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT  HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT  LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS FOR A PARTICULAR  PURPOSE
+# ARE  DISCLAIMED. IN  NO EVENT  SHALL LAWRENCE  LIVERMORE NATIONAL  SECURITY,
+# LLC, THE  U.S.  DEPARTMENT OF  ENERGY  OR  CONTRIBUTORS BE  LIABLE  FOR  ANY
+# DIRECT,  INDIRECT,   INCIDENTAL,   SPECIAL,   EXEMPLARY,  OR   CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF  SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF  USE, DATA, OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER
+# CAUSED  AND  ON  ANY  THEORY  OF  LIABILITY,  WHETHER  IN  CONTRACT,  STRICT
+# LIABILITY, OR TORT  (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY  WAY
+# OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+# DAMAGE.
+#*****************************************************************************
 """
  file: property_tree.py
  author: Cyrus Harrison <cyrush@llnl.gov>
@@ -15,7 +48,7 @@
 class PropertyTree(object):
     """
     Dynamic PropretyTree class.
-    
+
     Enables dynamic definition of tree-like python objects.
     """
     def __init__(self,ptype ="tree",init = None):
@@ -30,7 +63,7 @@ class PropertyTree(object):
     def update(self,pval):
         """
         Add entires from passed object.
-        
+
         Accepts both PropertyTree and dict instances.
         """
         if isinstance(pval,dict):
@@ -117,7 +150,7 @@ class PropertyTree(object):
     def lock(self):
         """
         Locks the PropertyTree.
-        
+
         Prevents creation (explcit and dynamic) of new paths.
         """
         self._locked = True
@@ -127,7 +160,7 @@ class PropertyTree(object):
     def unlock(self):
         """
         Unlocks the PropertyTree.
-        
+
         Allows creation (explcit and dynamic) of new paths.
         """
         self._locked = False
@@ -163,7 +196,7 @@ class PropertyTree(object):
     def fetch_property(self,path):
         """
         Fetches the object at a given path.
-        
+
         Returns None if the path does not exist.
         """
         idx = path.find("/")
@@ -198,7 +231,7 @@ class PropertyTree(object):
     def __getattr__(self, name):
         """
         Used to provide access to paths via the dot operator.
-        
+
         Calls __getitem__
         """
         if name.startswith("__") and name.endswith("__"):
@@ -210,7 +243,7 @@ class PropertyTree(object):
     def __setattr__(self, name,obj):
         """
         Used to create paths via the dot operator.
-        
+
         Calls __setitem__
         """
         if name == "_value" or name == "_type" or name == "_locked":

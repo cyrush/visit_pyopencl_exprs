@@ -1,6 +1,39 @@
+#*****************************************************************************
 #
-# ${disclaimer}
+# Copyright (c) 2000 - 2012, Lawrence Livermore National Security, LLC
+# Produced at the Lawrence Livermore National Laboratory
+# LLNL-CODE-442911
+# All rights reserved.
 #
+# This file is  part of VisIt. For  details, see https://visit.llnl.gov/.  The
+# full copyright notice is contained in the file COPYRIGHT located at the root
+# of the VisIt distribution or at http://www.llnl.gov/visit/copyright.html.
+#
+# Redistribution  and  use  in  source  and  binary  forms,  with  or  without
+# modification, are permitted provided that the following conditions are met:
+#
+#  - Redistributions of  source code must  retain the above  copyright notice,
+#    this list of conditions and the disclaimer below.
+#  - Redistributions in binary form must reproduce the above copyright notice,
+#    this  list of  conditions  and  the  disclaimer (as noted below)  in  the
+#    documentation and/or other materials provided with the distribution.
+#  - Neither the name of  the LLNS/LLNL nor the names of  its contributors may
+#    be used to endorse or promote products derived from this software without
+#    specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT  HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT  LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS FOR A PARTICULAR  PURPOSE
+# ARE  DISCLAIMED. IN  NO EVENT  SHALL LAWRENCE  LIVERMORE NATIONAL  SECURITY,
+# LLC, THE  U.S.  DEPARTMENT OF  ENERGY  OR  CONTRIBUTORS BE  LIABLE  FOR  ANY
+# DIRECT,  INDIRECT,   INCIDENTAL,   SPECIAL,   EXEMPLARY,  OR   CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF  SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF  USE, DATA, OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER
+# CAUSED  AND  ON  ANY  THEORY  OF  LIABILITY,  WHETHER  IN  CONTRACT,  STRICT
+# LIABILITY, OR TORT  (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY  WAY
+# OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+# DAMAGE.
+#*****************************************************************************
 """
  file: errors.py
  author: Cyrus Harrison <cyrush@llnl.gov>
@@ -21,13 +54,13 @@ class BaseError(Exception):
         self.msg = msg
     def log(self):
         """
-        Logs exception to the root and selected component logs. 
+        Logs exception to the root and selected component logs.
         """
         log.error(self.msg,components = self.categories)
     def __str__(self):
         """
         String pretty print.
-        """        
+        """
         return "<%s>" % self.msg
 
 # filter_graph exceptions
@@ -47,7 +80,7 @@ class InvalidPortError(BaseError):
 
 class InvalidInputPortError(InvalidPortError):
     """
-    Exception thrown by a FilterGraph to identify a connection to an invalid 
+    Exception thrown by a FilterGraph to identify a connection to an invalid
     input port.
     """
     def __init__(self,src_name,des_name,port_name):
@@ -57,7 +90,7 @@ class InvalidInputPortError(InvalidPortError):
 
 class InvalidOutputPortError(InvalidPortError):
     """
-    Exception thrown by a FilterGraph to identify connection from a nonexistent 
+    Exception thrown by a FilterGraph to identify connection from a nonexistent
     output port.
     """
     def __init__(self,src_name,des_name,port_name):
@@ -67,7 +100,7 @@ class InvalidOutputPortError(InvalidPortError):
 
 class UnknownFilterNodeError(BaseError):
     """
-    Exception thrown by a FilterGraph to identify an attempt to access a 
+    Exception thrown by a FilterGraph to identify an attempt to access a
     nonexistent filter node.
     """
     categories = ["filter_graph"]
@@ -80,7 +113,7 @@ class UnknownFilterNodeError(BaseError):
 
 class UnregisteredFilterError(BaseError):
     """
-    Exception thrown by a FilterGraph to identify an attempt to create a filter 
+    Exception thrown by a FilterGraph to identify an attempt to create a filter
     node with an unregistered type.
     """
     categories = ["filter_graph"]
@@ -110,7 +143,7 @@ class InvalidFilterDefinitionError(BaseError):
 # registry exceptions
 class InvalidRegistryKeyError(BaseError):
     """
-    Exception thrown by a Registry to identify an attempt to fetch a 
+    Exception thrown by a Registry to identify an attempt to fetch a
     nonexistent entry key.
     """
     categories = ["registry"]
@@ -123,7 +156,7 @@ class InvalidRegistryKeyError(BaseError):
 # workspace exceptions
 class UnregisteredContextError(BaseError):
     """
-    Exception thrown by a Workspace to identify an attempt to create a context 
+    Exception thrown by a Workspace to identify an attempt to create a context
     with an unregistered type.
     """
     categories = ["workspace"]
