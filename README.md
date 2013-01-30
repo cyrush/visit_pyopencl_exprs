@@ -24,7 +24,7 @@ _OSX Bundle Install:_
 <pre>
  > git clone https://github.com/cyrush/visit_pyopencl_exprs.git
 </pre>
-4. Install necessary support python modules into VisIt.
+4. Use VisIt to install the required python support modules.
 
 Note: You may have to load modules or set env vars to access the OpenCL headers and libs on your system.
 To use the NVIDIA OpenCL platform, you will need to load the proper CUDA environment. The shell scripts in 
