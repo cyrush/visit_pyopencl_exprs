@@ -103,6 +103,8 @@ class Filter(object):
         Returns the number of input ports.
         """
         return len(self.input_ports)
+    def parameters(self):
+        return self.params.properties()
     def __getitem__(self,path):
         """
         Fetches an entry from the params PropertyTree.
@@ -120,6 +122,12 @@ class Filter(object):
         res  = "%s:[%s]" % (self.name, self.filter_type)
         res += "(%s)"  % str(self.context)
         return res
+    @classmethod
+    def default_parameters(cls):
+        if isinstance(cls.default_params,PropertyTree):
+            return cls.default_params.properties()
+        else:
+            return dict(cls.default_params)
     @classmethod
     def info(cls):
         """
@@ -243,6 +251,25 @@ class FilterGraph(object):
         if node.output_port:
             del self.edges_out[inst_name]
         del self.nodes[inst_name]
+    def to_dict(self):
+        res = {"filter_types":{},
+               "nodes":{},
+               "connections":[]}
+        for k,v in self.filters.items():
+            res["filter_types"][k] = {"input_ports":    v.input_ports,
+                                      "default_params": v.default_params,
+                                      "output_port":    v.output_port}
+        for nname, node in self.nodes.items():
+            nres = {"type":    node.filter_type,
+                    "params":  node.params.properties(),
+                    "context": node.context.name}
+            res["nodes"][nname] = nres
+        for des_name, ein_map in self.edges_in.items():
+            for port_name, src_name in ein_map.items():
+                if not src_name is None:
+                    conn = {"from":src_name,"to":des_name,"port":port_name}
+                    res["connections"].append(conn)
+        return res
     def save_dot(self,fname):
         r   = "digraph G {\n"
         for nname, node in self.nodes.items():

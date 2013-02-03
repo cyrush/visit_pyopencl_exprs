@@ -45,6 +45,7 @@
 
 import unittest
 import math
+import json
 from flow import *
 
 # uncomment for detailed exe info
@@ -101,6 +102,49 @@ class TestWorkspace(unittest.TestCase):
         f2["power"] = 3.0
         r = self.w.execute()
         self.assertEqual(r,math.pow(10.0+20.0,3.0))
+    def test_02_dict_ser(self):
+        ctx = self.w.add_context("calc","root")
+        ctx.calc_setup() # check if we get proper context
+        ctx.add_registry_source(":src_a",10.0)
+        ctx.add_registry_source(":src_b",20.0)
+        self.assertEqual([":src_a",":src_b"],ctx.registry_keys())
+        ctx.add_filter("add","f1")
+        f2 = ctx.add_filter("pow","f2")
+        ctx.connect(":src_a","f1:in_a")
+        ctx.connect(":src_b","f1:in_b")
+        ctx.connect("f1","f2:in")
+        print self.w.to_dict()
+    def test_03_dict_load(self):
+        w1 = Workspace()
+        w1.register_filter(CalcPower)
+        w1.register_filter(CalcAdd)
+        w1.add_filter("add","f1")
+        w1.add_filter("pow","f2")
+        w1.connect("f1","f2:in")
+        w1_dict = w1.to_dict()
+        print "Source Workspace"
+        print json.dumps(w1_dict,indent=1)
+        w2 = Workspace()
+        w2.register_filter(CalcPower)
+        w2.register_filter(CalcAdd)
+        w2.load_dict(w1_dict)
+        w2_dict = w2.to_dict()
+        print "Resulting Workspace"
+        print json.dumps(w2_dict,indent=1)
+        self.assertEqual(w1_dict,w2_dict)
+    def test_04_dict_init(self):
+        r = {"nodes":{"f1":{"type":"add"},
+                      "f2":{"type":"pow"}},
+            "connections":[ {"from":"f1",
+                             "to":"f2",
+                             "port":"in"}]
+            }
+        self.w.load_dict(r)
+        w_dict = self.w.to_dict()
+        print "Input Dict"
+        print json.dumps(r,indent=1)
+        print "Resulting Workspace"
+        print json.dumps(w_dict,indent=1)
 
 
 if __name__ == '__main__':

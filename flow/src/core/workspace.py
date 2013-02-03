@@ -175,6 +175,14 @@ class Context(object):
             else:
                 return self.parent.parent_context(context_type=context_type)
         return None
+    def parameters(self):
+        return self.params
+    @classmethod
+    def default_parameters(cls):
+        if isinstance(cls.default_params,PropertyTree):
+            return cls.default_params.properties()
+        else:
+            return dict(cls.default_params)
     def __getitem__(self,path):
         """
         Fetches an entry from the params PropertyTree.
@@ -204,6 +212,7 @@ class Workspace(object):
         self.context_types = {}
         self.contexts      = {}
         self.default_context = Context(self,"<default>")
+        self.contexts["<default>"] = self.default_context
         self.register_filter(RegistrySource)
     def register_filter_module(self,filter_module):
         """
@@ -415,13 +424,12 @@ class Workspace(object):
         if ctx is None:
             ctx = self.default_context
         Generator.parse_network(txt,ctx)
-
     @classmethod
     def load_workspace_script(cls,src=None,file=None):
         """
         Helper used to load a workspace from a python script.
 
-        (May not be necessary)
+        (Legacy Path)
         """
         if src is None and not filename is None:
             info("Loading workingspace from: %s" % os.path.abspath(file))
@@ -431,6 +439,34 @@ class Workspace(object):
         # setup the workspace
         w = res.setup_workspace()
         return w;
+    def to_dict(self):
+        res = {"context_types":{},
+               "contexts":{}}
+        for k,v in self.context_types.items():
+            res["context_types"][k] = {"default_params":dict(v.default_parameters())}
+        for k,v in self.contexts.items():
+            ctx = {"type":v.context_type,
+                   "params": v.parameters().properties(),
+                   "parent": None}
+            if not v.parent is None:
+                ctx["parent"] = v.parent.name
+            res["contexts"][k] = ctx
+        graph_res = self.graph.to_dict()
+        res.update(graph_res)
+        return res
+    def load_dict(self,wdict):
+        # for now assume the filters and contexts are installed
+        # just create and hook up the filters
+        for node_name, node in wdict["nodes"].items():
+            params = None
+            ctx    = None
+            if node.has_key("params"):
+                params = node["params"]
+            if node.has_key("context"):
+                ctx = self.get_context(node["context"])
+            self.add_filter(node["type"],node_name,params,ctx)
+        for edge in wdict["connections"]:
+            self.connect(edge["from"],[edge["to"],edge["port"]])
 
 
 class ExecutionPlan(object):
