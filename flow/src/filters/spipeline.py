@@ -81,7 +81,7 @@ def UserScriptFilter(filter_name,filter_info):
              "default_params": {},
              "output_port":  True,
              "filter_source": f["source"]}
-    return type(cname,(PythonUserScriptBaseFilter,),cdct)
+    return type(str(cname),(PythonUserScriptBaseFilter,),cdct)
     #if f["runtime"] == "python":
     #   return type(cname,(PythonUserScriptBaseFilter,),cdct) 
     #else: # error, but we will support R
