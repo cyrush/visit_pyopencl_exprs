@@ -49,6 +49,11 @@ logging.basicConfig(level=logging.ERROR)
 
 
 import numpy as npy
+try:
+    import vtk
+    import vtk.util.numpy_support as vnp
+except:
+    pass
 
 from ..core import Filter, Context, log
 
@@ -59,8 +64,76 @@ def err(msg):
     log.error(msg,"filters.spipeline")
 
 
+# TOD: Consider using context for source mesh?
 
-class PythonUserScriptBaseFilter(Filter):
+class ScriptPipelineContext(Context):
+    context_type = "script_pipeline"
+    def init(self,source_mesh,primary_variable):
+        self.mesh = source_mesh
+        self.primary_var = primary_variable
+
+class ScriptPipelineRegistrySource(Filter):
+    # overrides standard RegistrySource
+    filter_type    = "<registry_source>"
+    input_ports    = []
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        # fetch data from registry
+        rkeys = self.context.registry_keys()
+        print rkeys
+        if not self.name in rkeys:
+            # try to dynam fetch of vtkDataArray from mesh
+            if ":mesh" in  rkeys:
+                var_name   = self.name[self.name.rfind(":")+1:]
+                print "fetch",var_name
+                mesh  = self.context.registry_fetch(":mesh")
+                varr = mesh.GetCellData().GetArray(var_name)
+                if varr is None:
+                    varr = mesh.GetPointData().GetArray(var_name)
+                if not varr is None:
+                    self.context.registry_add(self.name,varr)
+        return self.context.registry_fetch(self.name)
+
+class ScriptPipelineSink(Filter):
+    # overrides standard RegistrySource
+    filter_type    = "<sink>"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        res = self.input("in")
+        if isinstance(res,npy.ndarray):
+            # create
+            vdata = vtk.vtkFloatArray()
+            vdata.SetNumberOfComponents(1)
+            vdata.SetNumberOfTuples(res.shape[0])
+            npo = vnp.vtk_to_numpy(vdata)
+            npo[:] = res
+            res = vdata
+        if isinstance(res,vtk.vtkDataArray):
+            res.SetName(self.context.primary_var)
+            rset = self.context.mesh.NewInstance()
+            rset.ShallowCopy(self.context.mesh)
+            rset.GetCellData().RemoveArray(self.context.primary_var)
+            rset.GetCellData().AddArray(res)
+            rset.GetCellData().SetScalars(res)
+        else:
+            rset = res
+        return rset
+
+
+class ScriptPipelineNDArrayFilter(Filter):
+    filter_type    = "as_ndarray"
+    input_ports    = ["in"]
+    default_params = {}
+    output_port    = True
+    def execute(self):
+        # handle vtkDataArray to numpy ndarray
+        vdata = self.input("in")
+        return vnp.vtk_to_numpy(vdata)
+        
+class ScriptPipelinePythonBaseFilter(Filter):
     def execute(self):
         inputs = [self.input(v) for v in self.input_ports]
         script_globals = {}
@@ -73,22 +146,21 @@ class PythonUserScriptBaseFilter(Filter):
         exec(self.filter_source,script_globals,script_locals)
         return script_globals["__out_val"]
 
-def UserScriptFilter(filter_name,filter_info):
+def ScriptFilter(filter_name,filter_info):
     f = filter_info
-    cname = "UserScriptFilter" +  filter_name[0].upper() + filter_name[1:]
-    cdct =  {"filter_type":filter_name,
+    cname = "ScriptFilter" +  filter_name[0].upper() + filter_name[1:]
+    cdct =  {"filter_type": filter_name,
              "input_ports": f["vars"],
              "default_params": {},
              "output_port":  True,
              "filter_source": f["source"]}
-    return type(str(cname),(PythonUserScriptBaseFilter,),cdct)
-    #if f["runtime"] == "python":
-    #   return type(cname,(PythonUserScriptBaseFilter,),cdct) 
-    #else: # error, but we will support R
-    #    pass
+    return type(str(cname),(ScriptPipelinePythonBaseFilter,),cdct)
 
-filters = []
-def register_user_scripts(uscripts):
-    for filter_name,filter_info in uscripts.items():
-        filters.append(UserScriptFilter(filter_name,filter_info))
+contexts = [ScriptPipelineContext]
+filters = [ScriptPipelineRegistrySource,
+           ScriptPipelineSink,
+           ScriptPipelineNDArrayFilter]
+def register_scripts(scripts):
+    for filter_name,filter_info in scripts.items():
+        filters.append(ScriptFilter(filter_name,filter_info))
 

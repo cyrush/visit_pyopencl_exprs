@@ -211,8 +211,7 @@ class Workspace(object):
         self.registry = Registry()
         self.context_types = {}
         self.contexts      = {}
-        self.default_context = Context(self,"<default>")
-        self.contexts["<default>"] = self.default_context
+        self.contexts["<default_context>"] = Context(self,"<default_context>")
         self.register_filter(RegistrySource)
     def register_filter_module(self,filter_module):
         """
@@ -263,7 +262,7 @@ class Workspace(object):
         Adds a filter node instance to the workspace.
         """
         if context is None:
-            context = self.default_context
+            context = self.get_context("<default_context>")
         return self.graph.add_node(filter_type,name,params,context)
     def add_registry_source(self,
                             entry_key,
@@ -422,7 +421,7 @@ class Workspace(object):
         expression.
         """
         if ctx is None:
-            ctx = self.default_context
+            ctx = self.get_context("<default_context>")
         Generator.parse_network(txt,ctx)
     @classmethod
     def load_workspace_script(cls,src=None,file=None):

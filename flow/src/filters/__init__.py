@@ -47,6 +47,7 @@ import cmd
 import file_ops
 # requires install of imagemagick command line tools.
 import imagick
+import script_pipeline
 
 # check for import error only ...
 try:

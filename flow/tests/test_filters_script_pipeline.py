@@ -50,7 +50,7 @@ except:
     pass
 
 from flow import *
-from flow.filters import spipeline
+from flow.filters import script_pipeline
 
 # uncomment for detailed exe info
 #import logging
@@ -68,8 +68,8 @@ class TestSPipeline(unittest.TestCase):
                           "mult":{"source":"r=a*b\nsetout(r)",
                                   "vars":["a","b"]}}
         w = Workspace()
-        spipeline.register_user_scripts(sdef["scripts"])
-        w.register_filters(spipeline)
+        script_pipeline.register_scripts(sdef["scripts"])
+        w.register_filters(script_pipeline)
         v_a = npy.array(range(10),dtype=npy.float32)
         v_b = npy.array(range(10),dtype=npy.float32)
         w.registry_add(":src_a",v_a)
@@ -129,8 +129,8 @@ class TestSPipeline(unittest.TestCase):
                                {"from":"f3","to":"f5","port":"a"},
                                {"from":"f4","to":"f5","port":"b"}]
         w = Workspace()
-        spipeline.register_user_scripts(sdef["scripts"])
-        w.register_filters(spipeline)
+        script_pipeline.register_scripts(sdef["scripts"])
+        w.register_filters(script_pipeline)
         v_a = npy.array(range(10),dtype=npy.float32)
         v_b = npy.array(range(10),dtype=npy.float32)
         w.registry_add(":src_a",v_a)
