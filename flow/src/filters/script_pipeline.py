@@ -64,6 +64,23 @@ def err(msg):
     log.error(msg,"filters.spipeline")
 
 
+def as_vtkarray(a):
+    if isinstance(a, npy.ndarray):
+        return vnp.numpy_to_vtk(a)
+    elif isinstance(a, rpy2.rinterface.SexpVector):
+        return vnp.numpy_to_vtk(npy.asarray(a))
+    else:
+        return None 
+
+def as_ndarray(a):
+    if instance(a, vtk.vtkDataArray): 
+        return vnp.vtk_to_numpy(a) 
+    elif instance(a, rpy2.rinterface.SexpVector):
+        return npy.asarray(a) 
+    else:
+        return None 
+
+
 # TOD: Consider using context for source mesh?
 
 class ScriptPipelineContext(Context):
@@ -103,22 +120,44 @@ class ScriptPipelineSink(Filter):
     output_port    = True
     def execute(self):
         res = self.input("in")
+
+        if isinstance(res,vtk.vtkDataSet):
+            return res
+
         if isinstance(res,npy.ndarray):
-            # create
-            vdata = vtk.vtkFloatArray()
-            vdata.SetNumberOfComponents(1)
-            vdata.SetNumberOfTuples(res.shape[0])
-            npo = vnp.vtk_to_numpy(vdata)
-            npo[:] = res
-            res = vdata
+            res = vnp.numpy_to_vtk(res)
+
+        if not isinstance(res, vtk.vtkDataArray):
+            if isinstance(res, (list,tuple)):
+                np_tmp = npy.asarray(res)
+            else:
+                np_tmp = npy.asarray([res])
+            res = vnp.numpy_to_vtk(np_tmp)
+
+        #if isinstance(res,npy.ndarray):
+        #    # create
+        #    vdata = vtk.vtkFloatArray()
+        #    vdata.SetNumberOfComponents(1)
+        #    vdata.SetNumberOfTuples(res.shape[0])
+        #    npo = vnp.vtk_to_numpy(vdata)
+        #    npo[:] = res
+        #    res = vdata
         if isinstance(res,vtk.vtkDataArray):
             res.SetName(self.context.primary_var)
             rset = self.context.mesh.NewInstance()
             rset.ShallowCopy(self.context.mesh)
-            rset.GetCellData().RemoveArray(self.context.primary_var)
-            rset.GetCellData().AddArray(res)
-            rset.GetCellData().SetScalars(res)
-        else:
+
+            #only handles scalar data right now. TODO: add more support
+            vtk_data = rset.GetCellData().GetScalars(self.context.primary_var)
+            if vtk_data :
+                rset.GetCellData().RemoveArray(self.context.primary_var)
+                rset.GetCellData().AddArray(res)
+                rset.GetCellData().SetScalars(res)
+            else:
+                rset.GetPointData().RemoveArray(self.context.primary_var)
+                rset.GetPointData().AddArray(res)
+                rset.GetPointData().SetScalars(res)
+        else: #should not get here..
             rset = res
         return rset
 
@@ -142,6 +181,8 @@ class ScriptPipelinePythonBaseFilter(Filter):
         output_stub = "def setout(v): globals()['__out_val'] = v\n"
         for v in self.input_ports:
             script_globals[v] = self.input(v)
+        script_globals['as_vtkarray'] = as_vtkarray
+        script_globals['as_ndarray'] = as_ndarray
         exec(output_stub,script_globals,script_locals)
         exec(self.filter_source,script_globals,script_locals)
         return script_globals["__out_val"]
