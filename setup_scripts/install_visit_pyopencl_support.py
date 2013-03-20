@@ -59,9 +59,10 @@ import zipfile
 using_visit = False
 try:
     import visit
+    args = Argv()
     using_visit= True
 except ImportError:
-    pass
+    args = sys.argv[1:]
 
 from os.path import join as pjoin
 
@@ -88,7 +89,7 @@ def python_bin():
         return "visit -nowin -cli -s"
     else:
         # return python exe
-        return sys.executable()
+        return sys.executable
 
 def check_for_existing_module(mod_name,mod_ver=None):
     """
@@ -280,7 +281,7 @@ def setup_pypi_package(pkg_name,pkg_ver,pkg_type="tar.gz",force=False,dest_dir=N
 def setup_all():
     """ Builds and installs all packages, as necessary."""
     dest = None
-    if len(Argv()) > 0:
+    if len(args) > 0:
         dest = os.path.abspath(Argv()[0])
         prepare_module_dest_dir(dest)
         print "[installing modules to: %s]" % dest
