@@ -44,6 +44,20 @@ the _setup_scripts_ directory provide working examples for a few clusters.
 </pre>
 
 
+Getting Started with Flow Only (w/o) VisIt
+-------------------------------------------
+If you would like to run outside of VisIt, the setup script should work with a standalone python as well. 
+<pre>
+ > python setup_scripts/install_visit_pyopencl_support.py
+</pre>
+
+<pre>
+ > cd flow
+ > python setup.py test
+</pre>
+
+
+
 Getting Started On Edge (LLNL Visualization Cluster)
 ---------------
 1) Clone this repo:
