@@ -74,7 +74,7 @@ def gen_output_file_name(node):
     return ofname + "%s_%s_output.png" % (obase,node.state_vector.idx)
 
 def imagick_exe(cmd,ofname):
-    ret, out = sexe(cmd + " " + ofname,ret_output=True)
+    ret, out = sexe(cmd + " PNG32:" + ofname,ret_output=True)
     if ret != 0:
         raise ImagickExecuteError(out)
     return ofname
@@ -88,7 +88,7 @@ class ImageGenerator(Filter):
     output_port    = True
     def execute(self):
         p      = self.params
-        cmd    = "convert -size %dx%d xc:%s " % (p.width,p.height,p.color)
+        cmd    = "convert -type truecolormatte -size %dx%d xc:%s " % (p.width,p.height,p.color)
         return imagick_exe(cmd,gen_output_file_name(self))
 
 class ImageResize(Filter):
@@ -99,7 +99,7 @@ class ImageResize(Filter):
     output_port    = True
     def execute(self):
         p      = self.params
-        cmd    = "convert -resize %dx%d %s " % (p.width,p.height,self.input("in"))
+        cmd    = "convert -type truecolormatte -resize %dx%d %s " % (p.width,p.height,self.input("in"))
         return imagick_exe(cmd,gen_output_file_name(self))
 
 
@@ -111,7 +111,7 @@ class ImageOver(Filter):
     output_port    = True
     def execute(self):
         p   = self.params
-        cmd = "composite -geometry +%d+%d %s %s " % (p.x_offset,p.y_offset,
+        cmd = "composite -type truecolormatte -geometry +%d+%d %s %s " % (p.x_offset,p.y_offset,
                                                      self.input("over"),
                                                      self.input("under"))
         return imagick_exe(cmd,gen_output_file_name(self))
@@ -125,7 +125,7 @@ class ImageBlend(Filter):
     output_port    = True
     def execute(self):
         p   = self.params
-        cmd = "composite -blend %f -geometry +%d+%d %s %s " % (p.percent,
+        cmd = "composite -type truecolormatte -blend %f -geometry +%d+%d %s %s " % (p.percent,
                                                                p.x_offset,
                                                                p.y_offset,
                                                                self.input("over"),
@@ -142,7 +142,7 @@ class ImageCrop(Filter):
     output_port    = True
     def execute(self):
         p = self.params
-        cmd = "convert -crop %dx%d+%d+%d %s "  % (p.width,
+        cmd = "convert -type truecolormatte -crop %dx%d+%d+%d %s "  % (p.width,
                                                   p.height,
                                                   p.x_offset,
                                                   p.y_offset,
@@ -160,7 +160,7 @@ class ImageAppend(Filter):
         op = "+"
         if d == "vz":
             op = "-"
-        cmd = "convert %s %s %sappend " % (self.input("in_a"),self.input("in_b"),op)
+        cmd = "convert -type truecolormatte %s %s %sappend " % (self.input("in_a"),self.input("in_b"),op)
         return imagick_exe(cmd,gen_output_file_name(self))
 
 
