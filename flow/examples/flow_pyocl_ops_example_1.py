@@ -57,7 +57,7 @@ def main():
     v_a = npy.array(range(10),dtype=npy.float32)
     v_b = npy.array(range(10),dtype=npy.float32)
     ctx  = w.add_context("pyocl_ops","root")
-    ctx.start()
+    ctx.start(0,0)
     ctx.registry_add(":src_a",v_a)
     ctx.registry_add(":src_b",v_b)
     ctx.add_filter("add","f1")
