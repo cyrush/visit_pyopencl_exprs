@@ -81,25 +81,26 @@ def nbytes_str(nbytes):
     return "%d (MB: %s GB: %s)"  % (nbytes,repr(mbytes),repr(gbytes))
 
 class PyOpenCLBuffer(object):
-    def __init__(self,id,shape,dtype):
+    def __init__(self,id,shape,dtype,pool):
         self.id        = id
         self.shape     = shape
         self.out_shape = shape
         self.dtype     = dtype
         self.nbytes    = calc_nbytes(shape,dtype)
-        ctx = PyOpenCLContextManager.context()
+        self.pool      = pool
+        ctx = self.pool.context
         balloc = PyOpenCLHostTimer("balloc",self.nbytes)
         balloc.start()
-        self.cl_obj   = cl.Buffer(ctx, cl.mem_flags.READ_WRITE, self.nbytes)
+        self.cl_obj   = cl.Buffer(ctx.context(), cl.mem_flags.READ_WRITE, self.nbytes)
         balloc.stop()
-        PyOpenCLContextManager.add_host_event(balloc)
+        ctx.add_host_event(balloc)
         self.__active = 2
         info("PyOpenCLBuffer create: " + str(self))
     def write(self,data):
         nbytes = calc_nbytes(data.shape,data.dtype)
         info("PyOpenCLBuffer write %s bytes to %s"  % (nbytes,str(self)))
-        evnt = cl.enqueue_copy(PyOpenCLContextManager.queue(),self.cl_obj,data)
-        PyOpenCLContextManager.add_event("win",evnt,nbytes)
+        evnt = cl.enqueue_copy(self.pool.context.queue(),self.cl_obj,data)
+        self.pool.context.add_event("win",evnt,nbytes)
         return evnt
     def read(self):
         nbytes = calc_nbytes(self.out_shape,self.dtype)
@@ -108,10 +109,10 @@ class PyOpenCLBuffer(object):
         htimer.start()
         res = npy.zeros(self.out_shape,dtype=self.dtype)
         htimer.stop()
-        PyOpenCLContextManager.add_host_event(htimer)
+        self.pool.context.add_host_event(htimer)
         # this is blocking ...
-        evnt = cl.enqueue_copy(PyOpenCLContextManager.queue(),res,self.cl_obj)
-        PyOpenCLContextManager.add_event("rout",evnt,nbytes)
+        evnt = cl.enqueue_copy(self.pool.context.queue(),res,self.cl_obj)
+        self.pool.context.add_event("rout",evnt,nbytes)
         evnt.wait()
         return res
     def active(self):
@@ -136,31 +137,29 @@ class PyOpenCLBuffer(object):
 
 
 class PyOpenCLBufferPool(object):
-    buffers     = []
-    total_alloc = 0
-    @classmethod
-    def reset(cls):
+    def __init__(self,context):
+        self.context     = context
+        self.buffers     = []
+        self.total_alloc = 0
+    def reset(self):
         rset = PyOpenCLHostTimer("pool_reset",0)
         rset.start()
         # this should trigger pyopencl cleanup of buffers
-        cls.buffers     = []
-        cls.total_alloc = 0
-        cls.max_alloc   = 0
+        self.buffers     = []
+        self.total_alloc = 0
+        self.max_alloc   = 0
         rset.stop()
-        PyOpenCLContextManager.add_host_event(rset)
-    @classmethod
-    def available_device_memory(cls,percentage=False):
-        devm = PyOpenCLContextManager.device_memory()
-        res  = devm - cls.total_alloc
+        self.context.add_host_event(rset)
+    def available_device_memory(self,percentage=False):
+        devm = self.context.device_memory()
+        res  = devm - self.total_alloc
         if percentage:
             res = round(100.0 * (float(res) / float(devm)),2)
         return res
-    @classmethod
-    def device_memory_high_water(cls):
-        return cls.max_alloc
-    @classmethod
-    def request_buffer(cls,shape,dtype):
-        avail   = [b for b in cls.buffers if b.available()]
+    def device_memory_high_water(self):
+        return self.max_alloc
+    def request_buffer(self,shape,dtype):
+        avail   = [b for b in self.buffers if b.available()]
         rbytes  = calc_nbytes(shape,dtype)
         res_buf = None
         for b in avail:
@@ -173,64 +172,59 @@ class PyOpenCLBufferPool(object):
                 b.reactivate(shape,dtype)
                 res_buf = b
                 dreuse.stop()
-                PyOpenCLContextManager.add_host_event(dreuse)
+                self.context.add_host_event(dreuse)
                 break
         if res_buf is None:
-            res_buf = cls.__create_buffer(shape,dtype)
+            res_buf = self.__create_buffer(shape,dtype)
         return res_buf
-    @classmethod
-    def buffer_info(cls):
-        res  = "Total Device Memory: %s\n" % nbytes_str(PyOpenCLContextManager.device_memory())
-        res += "Available Memory:   %s "  % nbytes_str(cls.available_device_memory())
-        res += "(" + repr(cls.available_device_memory(True)) + " %)\n"
+    def buffer_info(self):
+        res  = "Total Device Memory: %s\n" % nbytes_str(self.context.device_memory())
+        res += "Available Memory:   %s "  % nbytes_str(self.available_device_memory())
+        res += "(" + repr(self.available_device_memory(True)) + " %)\n"
         res += "Buffers:\n"
-        for b in cls.buffers:
+        for b in self.buffers:
             res += " " + str(b) + "\n"
         return res
-    @classmethod
-    def reclaim(cls):
+    def reclaim(self):
         #if released(), the buffer is avail for the next request
-        for b in cls.buffers:
+        for b in self.buffers:
             if b.released():
                 b.reclaim()
-    @classmethod
-    def release_buffer(cls,buff):
+    def release_buffer(self,buff):
         drel = PyOpenCLHostTimer("drelease",buff.nbytes)
         drel.start()
-        cls.total_alloc -= buff.nbytes
-        cls.buffers.remove(buff)
+        self.total_alloc -= buff.nbytes
+        self.buffers.remove(buff)
         drel.stop()
-        PyOpenCLContextManager.add_host_event(drel)
-    @classmethod
-    def __create_buffer(cls,shape,dtype):
+        self.context.add_host_event(drel)
+    def __create_buffer(self,shape,dtype):
         # no suitable buffer, we need to create a new one
         rbytes = calc_nbytes(shape,dtype)
         # see if we have enough bytes left on the device
         # if not, try to  reclaim some memory from released buffers
         # if rbytes > cls.available_device_memory():
-        cls.__reap(rbytes)
-        if rbytes > cls.available_device_memory():
+        self.__reap(rbytes)
+        if rbytes > self.available_device_memory():
             msg  = "Reap failed\n"
             msg += " Free Request:       %s\n" % nbytes_str(rbytes)
-            msg += PyOpenCLContextManager.events_summary()[0] + "\n"
-            msg += cls.buffer_info() + "\n"
+            msg += self.context.events_summary()[0] + "\n"
+            msg += self.buffer_info() + "\n"
             err(msg)
             raise MemoryError
-        res = PyOpenCLBuffer(len(cls.buffers),shape,dtype)
-        cls.total_alloc += res.nbytes
-        if cls.total_alloc > cls.max_alloc:
-            cls.max_alloc = cls.total_alloc
-        cls.buffers.append(res)
-        info(cls.buffer_info())
+        res = PyOpenCLBuffer(len(self.buffers),shape,dtype,self)
+        self.total_alloc += res.nbytes
+        if self.total_alloc > self.max_alloc:
+            self.max_alloc = self.total_alloc
+        self.buffers.append(res)
+        info(self.buffer_info())
         return res
-    @classmethod
-    def __reap(cls,nbytes):
+    def __reap(self,nbytes):
         rbytes = 0
-        avail  = [b for b in cls.buffers if b.available()]
+        avail  = [b for b in self.buffers if b.available()]
         for b in avail:
             rbytes += b.nbytes
-            cls.release_buffer(b)
-            if cls.available_device_memory() >= nbytes:
+            self.release_buffer(b)
+            if self.available_device_memory() >= nbytes:
                 # we have enough mem, so break
                 break
         del avail
@@ -276,91 +270,128 @@ class PyOpenCLHostTimer(WallTimer):
     def start_to_end(self):
         return self.get_elapsed()
 
-
 class PyOpenCLContextManager(object):
-    plat_id  = 0
-    dev_id   = 0
-    ctx      = None
-    ctx_info = None
-    device   = None
-    cmdq     = None
-    events   = []
+    contexts = {}
+    # context pass thrus
     @classmethod
-    def select_device(cls,platform_id,device_id):
-        cls.plat_id = platform_id
-        cls.dev_id  = device_id
+    def select_device(cls,platform_id, device_id,context_name="default"):
+        cls.contexts[context_name] = PyOpenCLContext(context_name,platform_id,device_id)
     @classmethod
-    def queue(cls):
-        if cls.cmdq is None:
-            ctx = cls.context()
+    def context(cls,context_name="default"):
+        cls.contexts[context_name].context()
+        return cls.contexts[context_name]
+    @classmethod
+    def queue(cls,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.queue()
+    @classmethod
+    def clear_events(cls,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.clear_events()
+    @classmethod
+    def dispatch_kernel(cls,kernel_source,out_shape,buffers,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.dispatch_kernel(kernel_source,out_shape,buffers)
+    @classmethod
+    def add_host_event(cls,host_timer,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.add_host_event(host_timer)
+    @classmethod
+    def add_event(cls,tag,cl_evnt,nbytes=0,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.add_event(tag,cl_evnt,nbytes)
+    @classmethod
+    def events_summary(cls,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.events_summary()
+    # pool pass thrus
+    @classmethod
+    def reset(cls,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.pool.reset()
+    @classmethod
+    def request_buffer(cls,shape,dtype,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.pool.request_buffer(shape,dtype)
+    @classmethod 
+    def reclaim(cls,context_name="default"):
+        ctx = cls.context(context_name)
+        return ctx.pool.reclaim()
+        
+
+class PyOpenCLContext(object):
+    def __init__(self,context_name,platform_id,device_id):
+        self.name       = context_name
+        self.plat_id    = platform_id
+        self.dev_id     = device_id
+        self.ctx        = None
+        self.info       = None
+        self.device     = None
+        self.cmdq       = None
+        self.pool       = None
+        self.events     = []
+    def queue(self):
+        if self.cmdq is None:
+            ctx = self.context()
             prof = cl.command_queue_properties.PROFILING_ENABLE
-            cls.cmdq = cl.CommandQueue(ctx,properties=prof)
-        return cls.cmdq
-    @classmethod
-    def instance(cls):
-        return cls.context()
-    @classmethod
-    def context(cls):
+            self.cmdq = cl.CommandQueue(ctx,properties=prof)
+        return self.cmdq
+    def context(self):
         if not found_pyopencl:
             return None
-        if cls.ctx is None:
+        if self.ctx is None:
             csetup = PyOpenCLHostTimer("ctx_setup",0)
             csetup .start()
-            platform = cl.get_platforms()[cls.plat_id]
-            device = platform.get_devices()[cls.dev_id]
+            platform = cl.get_platforms()[self.plat_id]
+            device = platform.get_devices()[self.dev_id]
             cinfo  = "OpenCL Context Info\n"
-            cinfo += " Using platform id = %d\n" % cls.plat_id
+            cinfo += " Using platform id = %d\n" % self.plat_id
             cinfo += "  Platform name: %s\n" % platform.name
             cinfo += "  Platform profile: %s\n" % platform.profile
             cinfo += "  Platform vendor: %s\n" % platform.vendor
             cinfo += "  Platform version: %s\n" % platform.version
-            cinfo += " Using device id = %d\n" % cls.dev_id
+            cinfo += " Using device id = %d\n" % self.dev_id
             cinfo += "  Device name: %s\n" % device.name
             cinfo += "  Device type: %s\n" % cl.device_type.to_string(device.type)
             cinfo += "  Device memory: %s\n" % device.global_mem_size
             cinfo += "  Device max clock speed: %s MHz\n" % device.max_clock_frequency
             cinfo += "  Device compute units: %s\n" % device.max_compute_units
             info(cinfo)
-            cls.device = device
-            cls.ctx = cl.Context([device])
-            cls.ctx_info = cinfo
+            self.device = device
+            self.ctx = cl.Context([device])
+            self.ctx_info = cinfo
+            self.pool = PyOpenCLBufferPool(self)
             csetup.stop()
-            PyOpenCLContextManager.add_host_event(csetup)
-        return cls.ctx
-    @classmethod
-    def dispatch_kernel(cls,kernel_source,out_shape,buffers):
+            self.add_host_event(csetup)
+        return self.ctx
+    def dispatch_kernel(self,kernel_source,out_shape,buffers):
         kdisp = PyOpenCLHostTimer("kdispatch",0)
         kdisp.start()
         ibuffs = [ b.cl_obj for b in buffers]
-        prg    = cl.Program(cls.context(),kernel_source).build()
-        evnt   = prg.kmain(cls.queue(), out_shape, None, *ibuffs)
-        cls.add_event("kexec",evnt)
+        prg    = cl.Program(self.context(),kernel_source).build()
+        evnt   = prg.kmain(self.queue(), out_shape, None, *ibuffs)
+        self.add_event("kexec",evnt)
         kdisp.stop()
-        PyOpenCLContextManager.add_host_event(kdisp)
+        self.add_host_event(kdisp)
         return evnt
-    @classmethod
-    def device_memory(cls):
-        cls.context()
-        return cls.device.global_mem_size
-    @classmethod
-    def clear_events(cls):
-        cls.events = []
-    @classmethod
-    def add_event(cls,tag,cl_evnt,nbytes=0):
-        cls.events.append(PyOpenCLContextEvent(tag,cl_evnt,nbytes))
-    @classmethod
-    def add_host_event(cls,host_timer):
-        cls.events.append(host_timer)
-    @classmethod
-    def events_summary(cls):
+    def device_memory(self):
+        self.context()
+        return self.device.global_mem_size
+    def clear_events(self):
+        self.events = []
+    def add_event(self,tag,cl_evnt,nbytes=0):
+        self.events.append(PyOpenCLContextEvent(tag,cl_evnt,nbytes))
+    def add_host_event(self,host_timer):
+        self.events.append(host_timer)
+    def events_summary(self):
         res      = ""
         tbytes   = 0
         ttag     = {}
         tqte     = 0.0
         tste     = 0.0
-        tnevents = len(cls.events)
-        maxalloc = PyOpenCLBufferPool.device_memory_high_water()
-        for e in cls.events:
+        tnevents = len(self.events)
+        maxalloc = self.pool.device_memory_high_water()
+        for e in self.events:
             tbytes += e.nbytes
             tqte   += e.queued_to_end()
             tste   += e.start_to_end()
@@ -378,7 +409,7 @@ class PyOpenCLContextManager(object):
                                "qte":e.queued_to_end(),
                                "ste":e.start_to_end()}
         tmbytes, tgbytes = nbytes_mb_gb(tbytes)
-        res += cls.ctx_info
+        res += self.ctx_info
         res += "\nTag Totals:\n"
         for k,v in ttag.items():
             nevents = v["nevents"]
@@ -417,4 +448,4 @@ class PyOpenCLContextManager(object):
 
 
 Manager = PyOpenCLContextManager
-Pool    = PyOpenCLBufferPool
+Pool    = PyOpenCLContextManager

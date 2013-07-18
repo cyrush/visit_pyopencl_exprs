@@ -70,8 +70,6 @@ class PyOpenCLCompileContext(Context):
         self.stmts   = []
         self.inputs  = []
         self.out_shape = None
-    def set_device_id(self,dev_id):
-        pyocl_env.Manager.set_device_id(dev_id)
     def bind_data(self,obj):
         idx = len(self.inputs)
         self.inputs.append(obj)
