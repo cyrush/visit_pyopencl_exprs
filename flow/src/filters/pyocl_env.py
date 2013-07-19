@@ -141,6 +141,7 @@ class PyOpenCLBufferPool(object):
         self.context     = context
         self.buffers     = []
         self.total_alloc = 0
+        self.max_alloc   = 0
     def reset(self):
         rset = PyOpenCLHostTimer("pool_reset",0)
         rset.start()
@@ -317,6 +318,17 @@ class PyOpenCLContextManager(object):
     def reclaim(cls,context_name="default"):
         ctx = cls.context(context_name)
         return ctx.pool.reclaim()
+    @classmethod
+    def devices(cls):
+        res = []
+        platforms = cl.get_platforms()
+        for i in range(len(platforms)):
+            platform = platforms[i]
+            devices  = platform.get_devices()
+            for j in range(len(devices)):
+                device = devices[j]
+                res.append( (i,j,"%s_%s" % (platform.name, device.name)))
+        return res
         
 
 class PyOpenCLContext(object):
